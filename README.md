@@ -41,7 +41,7 @@ pip install -r requirements.txt
 To launch the app, from the root directory, run:
 
 ```
-python transcription_app/main.py
+python transcribe_app/main.py
 ```
 A GUI window should open with options to Record, Transcribe, and Secure Delete.
 
