@@ -1,3 +1,6 @@
+import sys
+import types
+
 from transcribe_app import transcription
 
 
@@ -16,14 +19,16 @@ def test_transcribe_audio(monkeypatch, tmp_path):
     dummy_audio = tmp_path / "dummy.wav"
     dummy_audio.write_bytes(b"dummy content")
 
-    # Monkey-patch the whisper.load_model in the transcription module.
-    monkeypatch.setattr(
-        transcription,
-        "whisper",
-        type("DummyWhisper", (), {"load_model": dummy_load_model}),
-    )
+    # Create a dummy module for 'whisper' with the dummy load_model function.
+    dummy_whisper = types.ModuleType("whisper")
+    dummy_whisper.load_model = dummy_load_model
 
-    # Run the transcription function.
+    # Insert the dummy whisper module into sys.modules
+    monkeypatch.setitem(sys.modules, "whisper", dummy_whisper)
+
+    # Now, when transcription.transcribe_audio is called, it will do:
+    #    import whisper
+    # and get our dummy_whisper module.
     text = transcription.transcribe_audio(str(dummy_audio))
 
     # Check that the dummy transcription is returned.
