@@ -52,7 +52,6 @@ pytest
 ```
 to run all tests.
 
-##
-Acknowledgements
+## Acknowledgements
 - OpenAI Whisper for the transcription engine
 - PySide6 for the cross-platform GUI framework
