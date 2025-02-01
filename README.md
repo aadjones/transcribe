@@ -45,6 +45,13 @@ python transcribe_app/main.py
 ```
 A GUI window should open with options to Record, Transcribe, and Secure Delete.
 
+### Testing
+We use pytest for testing. From the root directory, run
+```
+pytest
+```
+to run all tests.
+
 ##
 Acknowledgements
 - OpenAI Whisper for the transcription engine
