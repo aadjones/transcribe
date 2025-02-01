@@ -1,0 +1,15 @@
+# GUI framework
+PySide6>=6.0.0
+
+# Audio recording and file handling
+sounddevice>=0.4.6
+soundfile>=0.12.1
+
+# Transcription engine
+openai-whisper
+
+# Cryptography for secure deletion and encryption routines
+cryptography>=39.0.0
+
+# Additional dependencies
+numpy>=1.19.0
