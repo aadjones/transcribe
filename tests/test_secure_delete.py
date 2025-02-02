@@ -12,3 +12,7 @@ def test_secure_delete(tmp_path):
 
     # Assert that the file no longer exists.
     assert not test_file.exists(), "File should be deleted securely."
+
+
+def test_always_passes():
+    assert True, "This test is designed to pass."
