@@ -4,6 +4,7 @@ import os
 import random
 from typing import Optional
 
+from datasets import load_dataset
 from jiwer import (
     Compose,
     ReduceToListOfListOfWords,
@@ -14,6 +15,9 @@ from jiwer import (
     ToLowerCase,
     wer,
 )
+from transcribe_app.config import HF_API_TOKEN
+
+from transcribe_app.transcription import transcribe_audio
 
 
 def run_pipeline(
@@ -144,31 +148,102 @@ def benchmark_pipeline(
     return results
 
 
+def benchmark_medical_pipeline(model_name: str = "tiny", use_postprocessing: bool = False, max_samples: Optional[int] = None):
+    """
+    Benchmark the transcription performance using the United-Syn-Med dataset.
+    This function loads the dataset from Hugging Face and applies the transcription model.
+    """
+    # Load the dataset with the API token for authentication.
+    dataset = load_dataset("united-we-care/United-Syn-Med", split="train", use_auth_token=HF_API_TOKEN)
+    
+    # Optionally limit the number of samples.
+    if max_samples is not None:
+        dataset = dataset.shuffle(seed=42).select(range(max_samples))
+    
+    total_wer = 0.0
+    count = 0
+    results = []
+    
+    for sample in dataset:
+        # Assume the audio field is an Audio object provided by the datasets library.
+        # It may include a "path" key if the file is stored locally.
+        # Otherwise, you may need to write 'sample["audio"]["array"]' to a temp file.
+        
+        # Here we're trying to use the file path directly if it exists:
+        audio_info = sample["audio"]
+        if "path" in audio_info:
+            audio_file = audio_info["path"]
+        else:
+            # If there is no direct file path, write the audio array to a temporary file.
+            import tempfile
+            import soundfile as sf
+            tmp_file = tempfile.NamedTemporaryFile(suffix=".wav", delete=False)
+            sf.write(tmp_file.name, audio_info["array"], audio_info["sampling_rate"])
+            audio_file = tmp_file.name
+        
+        # Retrieve the transcript text (assuming it's stored under "text" or similar)
+        transcript = sample["text"]
+
+        print(f"Processing sample {count + 1}:")
+        print("Reference transcript:", transcript)
+        
+        # Transcribe using your defined transcription function. Depending on your implementation,
+        # you might need to adjust this if it expects a file path.
+        hypothesis = transcribe_audio(audio_file)
+        
+        print("Hypothesis transcription:", hypothesis)
+        
+        try:
+            error_rate = wer(
+                [transcript],
+                [hypothesis],
+                truth_transform=reference_transform,
+                hypothesis_transform=hypothesis_transform,
+            )
+        except ValueError as e:
+            print(f"Error processing sample: {e}")
+            continue
+        
+        results.append((audio_file, hypothesis, transcript, error_rate))
+        total_wer += error_rate
+        count += 1
+        print(f"WER for sample {count}: {error_rate:.3f}\n")
+    
+    if count > 0:
+        avg_wer = total_wer / count
+        print(f"\nAverage WER over {count} samples: {avg_wer:.3f}")
+    else:
+        print("No samples benchmarked.")
+    
+    return results
+
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
-        description="Benchmark Whisper transcription models."
+        description="Benchmark Whisper transcription models on the United-Syn-Med dataset."
     )
     parser.add_argument(
         "--model",
         type=str,
         default="tiny",
-        help="The Whisper model to use (e.g., tiny, base, small, medium, large)",
+        help="The Whisper model to use (e.g., tiny, base, small, medium, large)"
     )
     parser.add_argument(
         "--postprocessing",
         action="store_true",
-        help="Enable domain-specific postprocessing corrections",
+        help="Enable domain-specific postprocessing corrections"
     )
     parser.add_argument(
-        "--max-files",
+        "--max-samples",
         type=int,
         default=None,
-        help="Limit the number of files processed (randomly selected)",
+        help="Limit number of samples processed (randomly selected)"
     )
+    
     args = parser.parse_args()
-
-    benchmark_pipeline(
+    
+    benchmark_medical_pipeline(
         model_name=args.model,
         use_postprocessing=args.postprocessing,
-        max_files=args.max_files,
+        max_samples=args.max_samples
     )
