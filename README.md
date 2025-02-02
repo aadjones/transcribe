@@ -52,6 +52,9 @@ pytest
 ```
 to run all tests.
 
+## For Developers
+For more detailed setup instructions, please see our [Developer Guide](docs/DEVELOPER.md).
+
 ## Acknowledgements
 - OpenAI Whisper for the transcription engine
 - PySide6 for the cross-platform GUI framework
