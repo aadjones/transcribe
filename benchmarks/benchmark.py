@@ -28,8 +28,8 @@ def run_pipeline(
     print(f"Loading Whisper model '{model_name}' for file: {audio_file}...")
     model = whisper.load_model(model_name)
     print("Transcribing audio...")
-    result = model.transcribe(audio_file)
-    transcription_text = result.get("text", "")
+    # Access the result directly since we only need the text
+    transcription_text = model.transcribe(audio_file)["text"]
 
     if use_postprocessing:
         # Placeholder for any domain-specific postprocessing.
