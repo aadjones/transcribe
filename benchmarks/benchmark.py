@@ -153,8 +153,23 @@ def benchmark_medical_pipeline(model_name: str = "tiny", use_postprocessing: boo
     Benchmark the transcription performance using the United-Syn-Med dataset.
     This function loads the dataset from Hugging Face and applies the transcription model.
     """
-    # Load the dataset with the API token for authentication.
-    dataset = load_dataset("united-we-care/United-Syn-Med", split="train", use_auth_token=HF_API_TOKEN)
+    from datasets import load_dataset
+    from transcribe_app.config import HF_API_TOKEN
+    from jiwer import (
+        Compose,
+        ReduceToListOfListOfWords,
+        RemoveMultipleSpaces,
+        RemovePunctuation,
+        Strip,
+        SubstituteRegexes,
+        ToLowerCase,
+        wer,
+    )
+    # For token pickup, ensure it's been set in the environment (this way we don't pass it explicitly)
+    # (Assuming HF_API_TOKEN was loaded in your config module)
+
+    # Load the dataset (token is now picked up from environment variable HUGGINGFACE_HUB_TOKEN)
+    dataset = load_dataset("united-we-care/United-Syn-Med", split="train")
     
     # Optionally limit the number of samples.
     if max_samples is not None:
@@ -164,34 +179,53 @@ def benchmark_medical_pipeline(model_name: str = "tiny", use_postprocessing: boo
     count = 0
     results = []
     
+    # Create transformation pipelines for normalization (update as needed)
+    # Since the transcripts might be different from your other benchmark, adjust these if needed.
+    hyphen_to_space = SubstituteRegexes({r"[-–—]": " "})
+    hypothesis_transform = Compose([
+        ToLowerCase(),
+        hyphen_to_space,
+        RemovePunctuation(),
+        RemoveMultipleSpaces(),
+        Strip(),
+        ReduceToListOfListOfWords(),
+    ])
+    reference_transform = Compose([
+        ToLowerCase(),
+        RemovePunctuation(),
+        RemoveMultipleSpaces(),
+        Strip(),
+        ReduceToListOfListOfWords(),
+    ])
+    
     for sample in dataset:
-        # Assume the audio field is an Audio object provided by the datasets library.
-        # It may include a "path" key if the file is stored locally.
-        # Otherwise, you may need to write 'sample["audio"]["array"]' to a temp file.
+        # Incoming dataset samples now have an 'mp3' key instead of 'audio'
+        audio_info = sample.get("mp3")
+        if audio_info is None:
+            print("No audio information found for sample, skipping.")
+            continue
         
-        # Here we're trying to use the file path directly if it exists:
-        audio_info = sample["audio"]
-        if "path" in audio_info:
+        # Get the file path if available; otherwise, write the audio array to a temporary file.
+        if "path" in audio_info and audio_info["path"]:
             audio_file = audio_info["path"]
         else:
-            # If there is no direct file path, write the audio array to a temporary file.
-            import tempfile
-            import soundfile as sf
+            import tempfile, soundfile as sf
             tmp_file = tempfile.NamedTemporaryFile(suffix=".wav", delete=False)
             sf.write(tmp_file.name, audio_info["array"], audio_info["sampling_rate"])
             audio_file = tmp_file.name
         
-        # Retrieve the transcript text (assuming it's stored under "text" or similar)
-        transcript = sample["text"]
-
+        # Retrieve the transcript text (if available). In our inspect, no "text" key was found.
+        transcript = sample.get("text")
+        if transcript is None:
+            print(f"No reference transcript available for sample: {sample.get('__key__')}. Skipping this sample.")
+            continue
+        
         print(f"Processing sample {count + 1}:")
         print("Reference transcript:", transcript)
         
-        # Transcribe using your defined transcription function. Depending on your implementation,
-        # you might need to adjust this if it expects a file path.
-        hypothesis = transcribe_audio(audio_file)
-        
-        print("Hypothesis transcription:", hypothesis)
+        # Transcribe using your transcription function (ensure transcribe_audio handles the file format appropriately)
+        from transcribe_app.transcription import transcribe_audio
+        hypothesis = transcribe_audio(audio_file, model_name=model_name, use_postprocessing=use_postprocessing)
         
         try:
             error_rate = wer(

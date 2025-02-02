@@ -3,12 +3,15 @@ import os
 # Add the parent directory (repository root) to sys.path
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
-from datasets import load_dataset
 from transcribe_app.config import HF_API_TOKEN
+from datasets import load_dataset
+
+# Set the Hugging Face token in the environment variable
+os.environ["HUGGINGFACE_HUB_TOKEN"] = HF_API_TOKEN
 
 def main():
-    # Load the United-Syn-Med dataset. Make sure that you have authenticated via HF_API_TOKEN.
-    dataset = load_dataset("united-we-care/United-Syn-Med", split="train", use_auth_token=HF_API_TOKEN)
+    # Load the dataset from Hugging Face; the token is now picked up from the environment.
+    dataset = load_dataset("united-we-care/United-Syn-Med", split="train")
     
     print(f"Total samples in dataset: {len(dataset)}")
     
