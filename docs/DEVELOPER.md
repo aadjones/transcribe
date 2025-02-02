@@ -50,7 +50,8 @@ Run the prepare_librispeech.py script from the project root:
 python scripts/prepare_librispeech.py
 ```
 
-This script will populatethe following directories:
+This script will populate the following directories. You may have to create empty
+directories first before running the script.
 
 * `benchmark_data/audio/` – containing the converted WAV files.  
 * `benchmark_data/transcripts/` – containing the corresponding transcript text files.
