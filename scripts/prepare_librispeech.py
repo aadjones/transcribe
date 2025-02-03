@@ -2,10 +2,10 @@ import os
 import subprocess
 
 # Configure these paths to match your setup:
-LIBRISPEECH_ROOT = "../LibriSpeech/dev-clean"  # Root of the LibriSpeech subset
-AUDIO_OUT_DIR = "../benchmark_data/audio"  # Output directory for WAV files
+LIBRISPEECH_ROOT = "LibriSpeech/dev-clean"  # Root of the LibriSpeech subset
+AUDIO_OUT_DIR = "benchmark_data/audio"  # Output directory for WAV files
 TRANSCRIPTS_OUT_DIR = (
-    "../benchmark_data/transcripts"  # Output directory for transcript text files
+    "benchmark_data/transcripts"  # Output directory for transcript text files
 )
 
 
