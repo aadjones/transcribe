@@ -222,3 +222,32 @@ if __name__ == "__main__":
         use_postprocessing=args.postprocessing,
         max_files=args.max_files,
     )
+
+
+def get_transformations():
+    """
+    Returns the reference and hypothesis transformations used for WER computation.
+    The hypothesis transformation replaces hyphens with spaces before removing punctuation,
+    whereas the reference transformation does not apply the hyphen replacement.
+    """
+    hyphen_to_space = SubstituteRegexes({r"[-–—]": " "})
+    hypothesis_transform = Compose(
+        [
+            ToLowerCase(),
+            hyphen_to_space,
+            RemovePunctuation(),
+            RemoveMultipleSpaces(),
+            Strip(),
+            ReduceToListOfListOfWords(),
+        ]
+    )
+    reference_transform = Compose(
+        [
+            ToLowerCase(),
+            RemovePunctuation(),
+            RemoveMultipleSpaces(),
+            Strip(),
+            ReduceToListOfListOfWords(),
+        ]
+    )
+    return reference_transform, hypothesis_transform
