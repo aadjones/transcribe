@@ -24,7 +24,7 @@ git clone https://github.com/aadjones/transcribe.git
 cd transcribe
 ```
 
-1. Create and Activate a Virtual Environment:
+2. Create and Activate a Virtual Environment:
 ```
 python3.11 -m venv env
 # On macOS/Linux:
@@ -33,13 +33,13 @@ source env/bin/activate
 .\env\Scripts\activate
 ```
 
-1. Install Dependencies:
+3. Install Dependencies:
 ```
 pip install --upgrade pip setuptools wheel
 pip install -r requirements.txt
 ```
 
-1. Install the Package in Development Mode:
+4. Install the Package in Development Mode:
 ```
 pip install -e .
 ```
