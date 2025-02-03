@@ -1,21 +1,21 @@
 repos:
   - repo: https://github.com/psf/black
-    rev: 23.1.0  # Use the latest stable release or your preferred version.
+    rev: 25.1.0  # Use the latest stable release or your preferred version.
     hooks:
       - id: black
 
   - repo: https://github.com/PyCQA/isort
-    rev: 5.12.0  # Update as needed.
+    rev: 6.0.0  # Update as needed.
     hooks:
       - id: isort
 
   - repo: https://github.com/PyCQA/flake8
-    rev: 6.0.0   # Update as needed.
+    rev: 7.1.1   # Update as needed.
     hooks:
       - id: flake8
 
   - repo: https://github.com/pre-commit/mirrors-mypy
-    rev: v1.5.1  # Use the version that suits your project.
+    rev: v1.14.1  # Use the version that suits your project.
     hooks:
       - id: mypy
 
