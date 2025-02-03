@@ -38,9 +38,8 @@ temp_audio.wav
 # LibriSpeech dataset
 LibriSpeech/
 
-# LibriSpeech audio and transcript files
-*.wav
-*.txt
+# Processed data files
+benchmark_data/
 
 # User-specific configuration files
 *.env
