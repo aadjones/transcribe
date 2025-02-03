@@ -144,6 +144,45 @@ def benchmark_pipeline(
     return results
 
 
+def get_transformations():
+    """
+    Returns the reference and hypothesis transformations used for WER computation.
+    The hypothesis transformation replaces hyphens with spaces before removing punctuation,
+    whereas the reference transformation does not apply the hyphen replacement.
+    """
+    from jiwer import (
+        Compose,
+        ReduceToListOfListOfWords,
+        RemoveMultipleSpaces,
+        RemovePunctuation,
+        Strip,
+        SubstituteRegexes,
+        ToLowerCase,
+    )
+
+    hyphen_to_space = SubstituteRegexes({r"[-–—]": " "})
+    hypothesis_transform = Compose(
+        [
+            ToLowerCase(),
+            hyphen_to_space,
+            RemovePunctuation(),
+            RemoveMultipleSpaces(),
+            Strip(),
+            ReduceToListOfListOfWords(),
+        ]
+    )
+    reference_transform = Compose(
+        [
+            ToLowerCase(),
+            RemovePunctuation(),
+            RemoveMultipleSpaces(),
+            Strip(),
+            ReduceToListOfListOfWords(),
+        ]
+    )
+    return reference_transform, hypothesis_transform
+
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
         description="Benchmark Whisper transcription models."
