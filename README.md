@@ -23,8 +23,8 @@ A cross-platform desktop application for secure, local audio transcription. This
 git clone https://github.com/aadjones/transcribe.git
 cd transcribe
 ```
-1. Create and Activate a Virtual Environment:
 
+1. Create and Activate a Virtual Environment:
 ```
 python3.11 -m venv env
 # On macOS/Linux:
@@ -32,17 +32,28 @@ source env/bin/activate
 # On Windows:
 .\env\Scripts\activate
 ```
+
 1. Install Dependencies:
 ```
 pip install --upgrade pip setuptools wheel
 pip install -r requirements.txt
 ```
-### Running the Application
-To launch the app, from the root directory, run:
 
+1. Install the Package in Development Mode:
 ```
+pip install -e .
+```
+
+### Running the Application
+To launch the app, you can use either:
+```
+# Option 1: Run as a module (recommended)
+python -m transcribe_app.main
+
+# Option 2: Run the file directly
 python transcribe_app/main.py
 ```
+
 A GUI window should open with options to Record, Transcribe, and Secure Delete.
 
 ### Testing
