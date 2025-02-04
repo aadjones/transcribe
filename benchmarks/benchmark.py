@@ -148,107 +148,92 @@ def benchmark_pipeline(
     return results
 
 
-def benchmark_medical_pipeline(model_name: str = "tiny", use_postprocessing: bool = False, max_samples: Optional[int] = None):
+def benchmark_medical_pipeline(model_name: str = "tiny", use_postprocessing: bool = False, max_samples: Optional[int] = 10):
     """
-    Benchmark the transcription performance using the United-Syn-Med dataset.
-    This function loads the dataset from Hugging Face and applies the transcription model.
-    """
-    from datasets import load_dataset
-    from transcribe_app.config import HF_API_TOKEN
-    from jiwer import (
-        Compose,
-        ReduceToListOfListOfWords,
-        RemoveMultipleSpaces,
-        RemovePunctuation,
-        Strip,
-        SubstituteRegexes,
-        ToLowerCase,
-        wer,
-    )
-    # For token pickup, ensure it's been set in the environment (this way we don't pass it explicitly)
-    # (Assuming HF_API_TOKEN was loaded in your config module)
+    Benchmark the transcription performance using the pauleyc/radiology_audio_3_iphone_laptop_666_samples 
+    dataset from Hugging Face. This dataset contains both audio and corresponding reference transcripts.
 
-    # Load the dataset (token is now picked up from environment variable HUGGINGFACE_HUB_TOKEN)
-    dataset = load_dataset("united-we-care/United-Syn-Med", split="train")
+    The model_name parameter specifies which Whisper model to use (e.g., "tiny", "small", "large").
+    The use_postprocessing flag enables any domain-specific postprocessing.
     
-    # Optionally limit the number of samples.
+    Note: This version applies minimal text normalization—collapsing multiple spaces, stripping extra whitespace, 
+    and tokenizing the text—while preserving case, punctuation, and hyphens. It processes up to 10 samples by default.
+    """
+    import os
+    from datasets import load_dataset
+
+    # Load the dataset using its correct identifier.
+    dataset = load_dataset("pauleyc/radiology_audio_3_iphone_laptop_666_samples", split="train")
+
+    # Limit the number of samples for debugging by explicitly converting the range to a list.
     if max_samples is not None:
-        dataset = dataset.shuffle(seed=42).select(range(max_samples))
-    
+        dataset = dataset.shuffle(seed=42).select(list(range(max_samples)))
+        print(f"Dataset length after limiting: {len(dataset)}")
+
     total_wer = 0.0
-    count = 0
+    successful_samples = 0
     results = []
-    
-    # Create transformation pipelines for normalization (update as needed)
-    # Since the transcripts might be different from your other benchmark, adjust these if needed.
-    hyphen_to_space = SubstituteRegexes({r"[-–—]": " "})
-    hypothesis_transform = Compose([
-        ToLowerCase(),
-        hyphen_to_space,
-        RemovePunctuation(),
+
+    # Import jiwer and define a minimal transformation.
+    from jiwer import Compose, RemoveMultipleSpaces, Strip, wer
+    minimal_transform = Compose([
         RemoveMultipleSpaces(),
         Strip(),
-        ReduceToListOfListOfWords(),
+        lambda x: x.split() if isinstance(x, str) else x,
     ])
-    reference_transform = Compose([
-        ToLowerCase(),
-        RemovePunctuation(),
-        RemoveMultipleSpaces(),
-        Strip(),
-        ReduceToListOfListOfWords(),
-    ])
-    
-    for sample in dataset:
-        # Incoming dataset samples now have an 'mp3' key instead of 'audio'
-        audio_info = sample.get("mp3")
-        if audio_info is None:
-            print("No audio information found for sample, skipping.")
+
+    # Process each sample using enumeration to display sample numbers.
+    for i, sample in enumerate(dataset):
+        # Retrieve audio information from the "audio" key.
+        audio_info = sample.get("audio")
+        if not audio_info:
+            print(f"Sample {i + 1}: No audio information found, skipping.")
             continue
-        
-        # Get the file path if available; otherwise, write the audio array to a temporary file.
-        if "path" in audio_info and audio_info["path"]:
+
+        # Use the file from the 'path' if it exists on disk; otherwise, create a temporary WAV file.
+        if "path" in audio_info and audio_info["path"] and os.path.exists(audio_info["path"]):
             audio_file = audio_info["path"]
         else:
             import tempfile, soundfile as sf
             tmp_file = tempfile.NamedTemporaryFile(suffix=".wav", delete=False)
             sf.write(tmp_file.name, audio_info["array"], audio_info["sampling_rate"])
             audio_file = tmp_file.name
-        
-        # Retrieve the transcript text (if available). In our inspect, no "text" key was found.
-        transcript = sample.get("text")
-        if transcript is None:
-            print(f"No reference transcript available for sample: {sample.get('__key__')}. Skipping this sample.")
+
+        # Retrieve the reference transcript.
+        transcript = sample.get("transcription")
+        if not transcript:
+            print(f"Sample {i + 1}: No reference transcript found, skipping.")
             continue
-        
-        print(f"Processing sample {count + 1}:")
+
+        print(f"Processing sample {i + 1}:")
         print("Reference transcript:", transcript)
-        
-        # Transcribe using your transcription function (ensure transcribe_audio handles the file format appropriately)
+
+        # Transcribe the audio using the specified Whisper model.
         from transcribe_app.transcription import transcribe_audio
         hypothesis = transcribe_audio(audio_file, model_name=model_name, use_postprocessing=use_postprocessing)
-        
+
         try:
             error_rate = wer(
                 [transcript],
                 [hypothesis],
-                truth_transform=reference_transform,
-                hypothesis_transform=hypothesis_transform,
+                truth_transform=minimal_transform,
+                hypothesis_transform=minimal_transform,
             )
         except ValueError as e:
-            print(f"Error processing sample: {e}")
+            print(f"Error computing WER for sample {i + 1}: {e}")
             continue
-        
+
         results.append((audio_file, hypothesis, transcript, error_rate))
         total_wer += error_rate
-        count += 1
-        print(f"WER for sample {count}: {error_rate:.3f}\n")
-    
-    if count > 0:
-        avg_wer = total_wer / count
-        print(f"\nAverage WER over {count} samples: {avg_wer:.3f}")
+        successful_samples += 1
+        print(f"Sample {i + 1}, WER: {error_rate:.3f}\n")
+
+    if successful_samples > 0:
+        avg_wer = total_wer / successful_samples
+        print(f"\nAverage WER over {successful_samples} samples: {avg_wer:.3f}")
     else:
         print("No samples benchmarked.")
-    
+
     return results
 
 
