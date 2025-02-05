@@ -3,6 +3,7 @@ import glob
 import os
 import random
 from typing import Optional
+from itertools import islice
 
 from datasets import load_dataset
 from jiwer import (
@@ -152,81 +153,86 @@ def benchmark_medical_pipeline(model_name: str = "tiny", use_postprocessing: boo
     """
     Benchmark the transcription performance using the pauleyc/radiology_audio_3_iphone_laptop_666_samples 
     dataset from Hugging Face. This dataset contains both audio and corresponding reference transcripts.
-
-    The model_name parameter specifies which Whisper model to use (e.g., "tiny", "small", "large").
-    The use_postprocessing flag enables any domain-specific postprocessing.
     
-    Note: This version applies minimal text normalization—collapsing multiple spaces, stripping extra whitespace, 
-    and tokenizing the text—while preserving case, punctuation, and hyphens. It processes up to 10 samples by default.
+    For debugging purposes, this version loads only max_samples (default 10) entries.
     """
     import os
     from datasets import load_dataset
+    from jiwer import Compose, RemoveMultipleSpaces, Strip, wer
+    from transcribe_app.transcription import transcribe_audio
+    import tempfile, soundfile as sf
 
-    # Load the dataset using its correct identifier.
+    # Load the entire dataset and convert it to a list
+    print("Loading dataset...")
     dataset = load_dataset("pauleyc/radiology_audio_3_iphone_laptop_666_samples", split="train")
+    dataset = list(dataset)
+    print(f"Dataset originally contains {len(dataset)} samples.")
 
-    # Limit the number of samples for debugging by explicitly converting the range to a list.
+    # Slice the dataset to only keep the first max_samples entries
     if max_samples is not None:
-        dataset = dataset.shuffle(seed=42).select(list(range(max_samples)))
-        print(f"Dataset length after limiting: {len(dataset)}")
+        dataset = dataset[:max_samples]
+        print(f"Limiting to {max_samples} samples for debugging.")
+    else:
+        print("max_samples is None; processing the entire dataset.")
+
+    print(f"Processing {len(dataset)} samples.\n")
 
     total_wer = 0.0
     successful_samples = 0
     results = []
 
-    # Import jiwer and define a minimal transformation.
-    from jiwer import Compose, RemoveMultipleSpaces, Strip, wer
+    # Minimal transformation: collapse spaces, strip whitespace, then split into words.
     minimal_transform = Compose([
         RemoveMultipleSpaces(),
         Strip(),
-        lambda x: x.split() if isinstance(x, str) else x,
+        lambda x: x.split() if isinstance(x, str) else x,  # Only split if x is a string
     ])
 
-    # Process each sample using enumeration to display sample numbers.
+    # Process each sample
     for i, sample in enumerate(dataset):
-        # Retrieve audio information from the "audio" key.
         audio_info = sample.get("audio")
         if not audio_info:
             print(f"Sample {i + 1}: No audio information found, skipping.")
             continue
 
-        # Use the file from the 'path' if it exists on disk; otherwise, create a temporary WAV file.
+        # Prefer using the file if its path exists; otherwise, create a temporary WAV file
         if "path" in audio_info and audio_info["path"] and os.path.exists(audio_info["path"]):
             audio_file = audio_info["path"]
         else:
-            import tempfile, soundfile as sf
             tmp_file = tempfile.NamedTemporaryFile(suffix=".wav", delete=False)
             sf.write(tmp_file.name, audio_info["array"], audio_info["sampling_rate"])
             audio_file = tmp_file.name
 
-        # Retrieve the reference transcript.
         transcript = sample.get("transcription")
         if not transcript:
             print(f"Sample {i + 1}: No reference transcript found, skipping.")
             continue
 
-        print(f"Processing sample {i + 1}:")
+        print(f"\nProcessing sample {i + 1} of {len(dataset)}:")
         print("Reference transcript:", transcript)
 
-        # Transcribe the audio using the specified Whisper model.
-        from transcribe_app.transcription import transcribe_audio
+        # Transcribe using your function (which now accepts model_name and use_postprocessing)
         hypothesis = transcribe_audio(audio_file, model_name=model_name, use_postprocessing=use_postprocessing)
+        print("Generated transcript:", hypothesis)
 
         try:
-            error_rate = wer(
-                [transcript],
-                [hypothesis],
-                truth_transform=minimal_transform,
-                hypothesis_transform=minimal_transform,
-            )
-        except ValueError as e:
-            print(f"Error computing WER for sample {i + 1}: {e}")
+            # Use the transformation so that both texts become lists of words.
+            ref_words = minimal_transform([transcript])[0]
+            hyp_words = minimal_transform([hypothesis])[0]
+
+            if not ref_words or not hyp_words:
+                print(f"Error: Empty word list after transformation for sample {i + 1}")
+                continue
+
+            error_rate = wer([ref_words], [hyp_words])
+        except Exception as e:
+            print(f"Error computing WER for sample {i + 1}: {str(e)}")
             continue
 
         results.append((audio_file, hypothesis, transcript, error_rate))
         total_wer += error_rate
         successful_samples += 1
-        print(f"Sample {i + 1}, WER: {error_rate:.3f}\n")
+        print(f"Sample {i + 1}, WER: {error_rate:.3f}")
 
     if successful_samples > 0:
         avg_wer = total_wer / successful_samples
@@ -239,7 +245,7 @@ def benchmark_medical_pipeline(model_name: str = "tiny", use_postprocessing: boo
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
-        description="Benchmark Whisper transcription models on the United-Syn-Med dataset."
+        description="Benchmark Whisper transcription models on medical audio dataset."
     )
     parser.add_argument(
         "--model",
@@ -255,8 +261,8 @@ if __name__ == "__main__":
     parser.add_argument(
         "--max-samples",
         type=int,
-        default=None,
-        help="Limit number of samples processed (randomly selected)"
+        default=10,
+        help="Limit number of samples processed (for debugging)"
     )
     
     args = parser.parse_args()
