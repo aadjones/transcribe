@@ -243,32 +243,158 @@ def benchmark_medical_pipeline(model_name: str = "tiny", use_postprocessing: boo
     return results
 
 
+def compare_medical_pipeline(
+    baseline_model: str = "tiny",
+    fine_tuned_model: str = "bqtsio/whisper-large-rad",
+    use_postprocessing: bool = False,
+    max_samples: int = 10
+):
+    """
+    Compare transcription performance of two models on the radiology audio dataset.
+
+    This function runs:
+      - A baseline transcription using a standard Whisper model (e.g., "tiny", "large")
+      - A second transcription using a fine-tuned version (e.g., "bqtsio/whisper-large-rad")
+    
+    The same audio sample from the dataset is passed to both models, and their outputs are compared
+    against the reference transcript using Word Error Rate (WER).
+
+    Parameters:
+      baseline_model (str): The baseline Whisper model to use (e.g., "tiny", "large").
+      fine_tuned_model (str): The fine-tuned Whisper model to use (default: "bqtsio/whisper-large-rad").
+      use_postprocessing (bool): Enable domain-specific postprocessing corrections.
+      max_samples (int): Limit the number of samples processed (for debugging; default: 10).
+
+    Returns:
+      A list of tuples for each processed sample:
+         (audio_file, baseline_transcript, fine_tuned_transcript, reference, baseline_wer, fine_tuned_wer)
+    
+    How it works:
+      1. Loads the radiology audio dataset from the Hugging Face Hub.
+      2. Converts the dataset to a list and slices it to only the first 'max_samples' items.
+      3. For each sample:
+         - Checks for the "audio" key and loads the corresponding audio file.
+         - Retrieves the reference transcript.
+         - Transcribes the audio using both the baseline and the fine-tuned models.
+         - Applies minimal text normalization (collapsing spaces, stripping whitespace, and splitting into words).
+         - Computes the WER for both transcriptions.
+         - Prints the results.
+    """
+    import os
+    import tempfile, soundfile as sf
+    from datasets import load_dataset
+    from jiwer import Compose, RemoveMultipleSpaces, Strip, wer
+    from transcribe_app.transcription import transcribe_audio
+
+    # Load radiology audio dataset and limit samples for debugging.
+    print("Loading dataset...")
+    dataset = load_dataset("pauleyc/radiology_audio_3_iphone_laptop_666_samples", split="train")
+    dataset = list(dataset)[:max_samples]  # Only keep the first max_samples samples.
+    print(f"Processing {len(dataset)} samples.\n")
+
+    # Define a minimal text normalization transformation:
+    # - Remove extra spaces, strip whitespace, then split into words.
+    minimal_transform = Compose([
+        RemoveMultipleSpaces(),
+        Strip(),
+        lambda x: x.split() if isinstance(x, str) else x,
+    ])
+
+    results = []
+
+    # Iterate over the dataset samples.
+    for i, sample in enumerate(dataset):
+        # Retrieve the audio data.
+        audio_info = sample.get("audio")
+        if not audio_info:
+            print(f"Sample {i+1}: No audio information available. Skipping.")
+            continue
+
+        # Use the provided file path if available; otherwise, create a temporary file.
+        if "path" in audio_info and audio_info["path"] and os.path.exists(audio_info["path"]):
+            audio_file = audio_info["path"]
+        else:
+            tmp_file = tempfile.NamedTemporaryFile(suffix=".wav", delete=False)
+            sf.write(tmp_file.name, audio_info["array"], audio_info["sampling_rate"])
+            audio_file = tmp_file.name
+
+        # Retrieve the reference transcript.
+        transcript = sample.get("transcription")
+        if not transcript:
+            print(f"Sample {i+1}: No reference transcript found. Skipping.")
+            continue
+
+        print(f"\nProcessing sample {i+1}:")
+        print("Reference transcript:", transcript)
+
+        # Generate transcriptions using both models.
+        baseline_transcript = transcribe_audio(
+            audio_file,
+            model_name=baseline_model,
+            use_postprocessing=use_postprocessing
+        )
+        print("Baseline transcript:", baseline_transcript)
+
+        fine_tuned_transcript = transcribe_audio(
+            audio_file,
+            model_name=fine_tuned_model,
+            use_postprocessing=use_postprocessing
+        )
+        print("Fine-tuned transcript:", fine_tuned_transcript)
+
+        try:
+            # Apply text normalization to both the transcripts.
+            ref_words = minimal_transform([transcript])[0]
+            baseline_words = minimal_transform([baseline_transcript])[0]
+            fine_tuned_words = minimal_transform([fine_tuned_transcript])[0]
+
+            # Calculate the Word Error Rate (WER).
+            baseline_wer = wer([ref_words], [baseline_words])
+            fine_tuned_wer = wer([ref_words], [fine_tuned_words])
+        except Exception as e:
+            print(f"Error computing WER for sample {i+1}: {e}")
+            continue
+
+        print(f"Sample {i+1} - Baseline WER: {baseline_wer:.3f}, Fine-tuned WER: {fine_tuned_wer:.3f}")
+        results.append((audio_file, baseline_transcript, fine_tuned_transcript, transcript, baseline_wer, fine_tuned_wer))
+
+    return results
+
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
-        description="Benchmark Whisper transcription models on medical audio dataset."
+        description="Compare transcription performance on medical audio using baseline and fine-tuned Whisper models."
     )
     parser.add_argument(
-        "--model",
+        "--baseline-model",
         type=str,
         default="tiny",
-        help="The Whisper model to use (e.g., tiny, base, small, medium, large)"
+        help="The baseline Whisper model to use (e.g., tiny, small, large)."
+    )
+    parser.add_argument(
+        "--fine-tuned-model",
+        type=str,
+        default="bqtsio/whisper-large-rad",
+        help="The fine-tuned Whisper model to use (e.g., bqtsio/whisper-large-rad)."
     )
     parser.add_argument(
         "--postprocessing",
         action="store_true",
-        help="Enable domain-specific postprocessing corrections"
+        help="Enable domain-specific postprocessing corrections."
     )
     parser.add_argument(
         "--max-samples",
         type=int,
         default=10,
-        help="Limit number of samples processed (for debugging)"
+        help="Limit number of samples processed (for debugging)."
     )
-    
+
     args = parser.parse_args()
-    
-    benchmark_medical_pipeline(
-        model_name=args.model,
+
+    # Run the comparison benchmark.
+    compare_medical_pipeline(
+        baseline_model=args.baseline_model,
+        fine_tuned_model=args.fine_tuned_model,
         use_postprocessing=args.postprocessing,
         max_samples=args.max_samples
     )
