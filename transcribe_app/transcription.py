@@ -1,7 +1,7 @@
 # transcribe_app/transcription.py
 
 
-def transcribe_audio(audio_file: str, model_name: str, use_postprocessing: bool = False) -> str:
+def transcribe_audio(audio_file: str, model_name: str = "tiny", use_postprocessing: bool = False) -> str:
     """
     Transcribe audio from a file using the given model.
     
@@ -11,7 +11,7 @@ def transcribe_audio(audio_file: str, model_name: str, use_postprocessing: bool 
     Parameters:
       audio_file (str): Path to the audio file.
       model_name (str): Name of the model. For a Hugging Face model, this will be the repository name,
-                        e.g., "bqtsio/whisper-large-rad".
+                        e.g., "bqtsio/whisper-large-rad". Defaults to "tiny".
       use_postprocessing (bool): Option to enable additional postprocessing (if implemented).
     
     Returns:
