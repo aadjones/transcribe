@@ -103,7 +103,7 @@ def process_sample(
         error_rate = wer(
             [transcript],
             [hypothesis],
-            truth_transform=ref_transform_fn,
+            reference_transform=ref_transform_fn,
             hypothesis_transform=hyp_transform_fn,
         )
     except Exception as e:
