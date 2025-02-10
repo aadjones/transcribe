@@ -6,5 +6,10 @@ setup(
     packages=find_packages(),
     install_requires=[
         "PySide6",
+        "whisper",
+        "jiwer",
+        "sounddevice",
+        "datasets",
+        "soundfile",
     ],
 )
