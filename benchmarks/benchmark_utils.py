@@ -11,6 +11,7 @@ from jiwer import (
     Strip,
     SubstituteRegexes,
     ToLowerCase,
+    wer,
 )
 
 
@@ -47,6 +48,16 @@ def create_transformations() -> tuple:
     )
 
     return reference_transform, hypothesis_transform
+
+
+# Minimal transformation: collapse spaces, strip whitespace, then split into words.
+minimal_transform = Compose(
+    [
+        RemoveMultipleSpaces(),
+        Strip(),
+        lambda texts: [t.split() if isinstance(t, str) else t for t in texts],
+    ]
+)
 
 
 def timing_decorator(func):
@@ -88,13 +99,13 @@ def process_sample(
     rtf = processing_time / duration
 
     try:
-        # Use the minimal transformation exactly as in your original code.
-        # It takes a list of strings and returns a list-of-lists-of-words.
-        ref_words = ref_transform_fn([transcript])[0]
-        hyp_words = hyp_transform_fn([hypothesis])[0]
-        from jiwer import wer
 
-        error_rate = wer([ref_words], [hyp_words])
+        error_rate = wer(
+            [transcript],
+            [hypothesis],
+            truth_transform=ref_transform_fn,
+            hypothesis_transform=hyp_transform_fn,
+        )
     except Exception as e:
         print(f"Error computing WER for {audio_file}: {e}")
         return None

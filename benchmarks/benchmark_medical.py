@@ -5,20 +5,15 @@ import tempfile
 
 import soundfile as sf
 from datasets import load_dataset
-from jiwer import Compose, RemoveMultipleSpaces, Strip
 
 from transcribe_app.transcription import transcribe_audio
 from transcribe_app.utils import get_audio_duration
 
-from .benchmark_utils import benchmark_dataset, get_random_subset, process_sample
-
-# Minimal transformation: collapse spaces, strip whitespace, then split into words.
-minimal_transform = Compose(
-    [
-        RemoveMultipleSpaces(),
-        Strip(),
-        lambda x: x.split() if isinstance(x, str) else x,  # Only split if x is a string
-    ]
+from .benchmark_utils import (
+    benchmark_dataset,
+    get_random_subset,
+    minimal_transform,
+    process_sample,
 )
 
 
