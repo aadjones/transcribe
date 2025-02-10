@@ -1,4 +1,4 @@
-from benchmarks.benchmark import get_transformations
+from benchmarks.benchmark_utils import create_transformations
 
 
 def test_reference_transformation_no_punctuation():
@@ -6,7 +6,7 @@ def test_reference_transformation_no_punctuation():
     # but we apply a transformation that lowercases everything.
     reference = "HELLO WORLD"
     expected = [["hello", "world"]]
-    ref_transform, _ = get_transformations()
+    ref_transform, _ = create_transformations()
     result = ref_transform([reference])
     assert result == expected, f"Expected {expected} but got {result}"
 
@@ -15,7 +15,7 @@ def test_hypothesis_transformation_removes_hyphen():
     # The hypothesis may include hyphens that should be replaced by spaces.
     hypothesis = "hello-world"
     expected = [["hello", "world"]]
-    _, hyp_transform = get_transformations()
+    _, hyp_transform = create_transformations()
     result = hyp_transform([hypothesis])
     assert result == expected, f"Expected {expected} but got {result}"
 
@@ -23,7 +23,7 @@ def test_hypothesis_transformation_removes_hyphen():
 def test_hypothesis_transformation_removes_punctuation():
     hypothesis = "hello, world!"
     expected = [["hello", "world"]]
-    _, hyp_transform = get_transformations()
+    _, hyp_transform = create_transformations()
     result = hyp_transform([hypothesis])
     assert result == expected, f"Expected {expected} but got {result}"
 
@@ -33,6 +33,6 @@ def test_mixed_transformation():
     hypothesis = "But if I play you-around, will you come?"
     # Expected: hyphen replaced with space, punctuation removed, then lowercased.
     expected = [["but", "if", "i", "play", "you", "around", "will", "you", "come"]]
-    _, hyp_transform = get_transformations()
+    _, hyp_transform = create_transformations()
     result = hyp_transform([hypothesis])
     assert result == expected, f"Expected {expected} but got {result}"

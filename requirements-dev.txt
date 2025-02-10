@@ -15,3 +15,6 @@ pytest>=8.3.4
 
 # Pre-commit Hooks
 pre-commit>=3.0.0
+
+# Environment Variables
+python-dotenv

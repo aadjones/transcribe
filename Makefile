@@ -9,6 +9,7 @@ install:
 	./env/bin/pip install --upgrade pip setuptools wheel
 	./env/bin/pip install -r requirements.txt -r requirements-dev.txt
 	@echo "Virtual environment created. Run 'source env/bin/activate' to activate it."
+	@echo "Afterwards, run 'pip install -e .' to install the package."
 
 # Remove build artifacts and caches, including the virtual environment
 clean:
