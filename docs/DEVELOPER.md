@@ -1,82 +1,96 @@
-## **Benchmarking with LibriSpeech**
+# **Developer README**
 
-This section describes how to download and prepare the LibriSpeech dataset and then run the benchmark scripts to evaluate the Whisper transcription pipeline.
+## **Overview**
 
-### **1\. Download the LibriSpeech Dataset**
+**Transcribe** is a cross-platform desktop application for secure, local audio transcription using OpenAI's Whisper model. In addition to the desktop application (with features such as audio recording, transcription, and secure deletion), the project includes modular benchmarking pipelines to evaluate transcription performance. We have recently refactored the benchmarking code into a unified command-line interface (CLI) that supports:
 
-For initial benchmarking, we recommend using the `dev-clean` subset of LibriSpeech. Download it from OpenSLR:
+* **Local Benchmarking** (e.g., LibriSpeech or other general audio datasets)  
+* **Medical Benchmarking** (using a minimal text normalization pipeline)  
+* **Model vs. Model Comparison** on medical datasets, with aggregated metrics (WER, processing time, RTF)
 
-**Direct Download:**  
-Visit http://www.openslr.org/resources/12/dev-clean.tar.gz  
-or run the following command in your terminal:
+In order for the pipeline to work, you will first need to set up LibriSpeech Benchmarking and Medical Setup. The later sections in this README explain how this is done.
 
-```
-wget http://www.openslr.org/resources/12/dev-clean.tar.gz
-```
+## **Unified Benchmarking Pipeline**
 
-### **2\. Extract the Dataset**
+The benchmarking functionality has been refactored to use a single CLI with three subcommands:
 
-After downloading, extract the archive with the following command:
+* **Local:** Run a benchmark on local audio files (e.g., LibriSpeech).  
+* **Medical:** Run a benchmark on medical audio data using a minimal text normalization transform.  
+* **Compare:** Run a model-vs-model comparison on the medical dataset and aggregate metrics (WER, processing time, and real-time factor).
 
-```
-tar -xzvf dev-clean.tar.gz
-````
+### **Running the CLI**
 
-This will create a directory structure such as `LibriSpeech/dev-clean/` containing subdirectories for each speaker and chapter.
-Move this directory to the root of the project.
+From the project root, use the unified CLI (located in `benchmarks/cli.py`):
 
-### **3\. Prepare the Benchmark Data**
-
-A script is provided to convert the FLAC files (the native audio format of LibriSpeech) to WAV format and to extract individual transcript files. This script will:
-
-* Traverse the LibriSpeech directory structure,  
-* Convert each FLAC file to a WAV file using `ffmpeg`, and  
-* Write out the corresponding transcript (one per utterance) into the appropriate directory.
-
-**Prerequisites:**
-
-Make sure [ffmpeg](https://ffmpeg.org/) is installed on your system.  
-On macOS, you can install it via Homebrew:
-
-```
-brew install ffmpeg
+```console
+python -m benchmarks.cli <subcommand> [options]
 ```
 
-**Running the Script:**
+For example:
 
-Run the prepare_librispeech.py script from the project root:
+* Local Benchmark:  
+  ```console
+  python -m benchmarks.cli local --model-name tiny --max-files 10
+  ```  
+    
+    
+* Medical Benchmark:  
+  ```console
+  python -m benchmarks.cli medical --model-name tiny --max-samples 10
+  ```  
+    
+* Model Comparison:  
+  ```
+  python -m benchmarks.cli compare --baseline-model tiny --fine-tuned-model bqtsio/whisper-large-rad --max-samples 10
+  ```
 
-```
-python scripts/prepare_librispeech.py
-```
+Each command uses random sampling to select a subset of files and prints both per-sample and aggregated results.
 
-This script will create and populate the following directories. 
+## **LibriSpeech Benchmarking**
 
-* `benchmark_data/audio/` – containing the converted WAV files.  
-* `benchmark_data/transcripts/` – containing the corresponding transcript text files.
+For local benchmarking with LibriSpeech:
 
-### **4\. Run the Benchmark**
+1. **Download the Dev-Clean Subset:**  
+   ```console
+   wget http://www.openslr.org/resources/12/dev-clean.tar.gz
+   ```
+2. **Extract the Dataset:**  
+   ```console
+   tar -xzvf dev-clean.tar.gz
+   ```  
+   **This creates a directory structure such as `LibriSpeech/dev-clean/.`**  
+3. **Prepare the Data:**  
+   Run the provided script to convert FLAC files to WAV and extract transcripts:  
+   ```console
+   python scripts/prepare_librispeech.py`
+   ```  
+   This populates:  
+* `benchmark_data/audio/` (WAV files)  
+* `benchmark_data/transcripts/` (transcript text files)  
+4. **Run the Local Benchmark:**  
+   ```console
+   python -m benchmarks.cli local --model-name tiny --max-files 10
+   ```
 
-Once the benchmark data is prepared, you can run the benchmark script to evaluate transcription accuracy. The benchmark script uses Jiwer to compute the Word Error Rate (WER).
+## **Medical Setup** 
 
-From the project root, run:
+Some medical datasets (e.g., [United-Syn-Med](https://huggingface.co/datasets/united-we-care/United-Syn-Med)) are gated and require a Hugging Face API key. 
 
-```
-python -m benchmarks.benchmark --model tiny --max-files 10
-````
+### **Steps to Configure:**
 
-This command will:
+1. **Create or Log In to Your Hugging Face Account:**  
+   Visit [Hugging Face](https://huggingface.co) and sign in or create an account.  
+2. **Generate an API Token:**  
+   In your account settings under Access Tokens, create a new token (e.g., `transcribe-app`) with read permissions, and copy it.  
+3. **Set Up Your Local Environment:**  
+   Create a `.env` file in the project root and populate it with the following: 
+   `HF_API_TOKEN=your_huggingface_api_token_here`
+4. **Automatic Loading:**  
+   The project's configuration module (`transcribe_app/config.py`) automatically loads the API key from `.env`. The API token is then used in benchmark scripts when loading gated datasets.
 
-* Load the specified Whisper model (in this case, `tiny`),  
-* Process up to 10 randomly selected audio files from `benchmark_data/audio/`,  
-* Compare the resulting transcriptions against the ground truth transcripts in `benchmark_data/transcripts/`, and  
-* Compute and display the WER.
+   
 
-### **5\. Customization**
-
-* **Model Selection:**  
-  Change the `--model` parameter to use a different Whisper model (e.g., `base`, `small`, `medium`, `large`).  
-* **Dataset Size:**  
-  Omit the `--max-files` parameter to run the benchmark on the entire dataset.
+ 
 
 
+  
