@@ -14,6 +14,7 @@ from PySide6.QtWidgets import (
 
 # Assume your transcription worker already exists; it takes an audio file path
 from transcribe_app.transcription_worker import TranscriptionWorker
+from transcribe_app.utils import calculate_wpm, get_wav_duration
 
 from .recording_manager import RecordingManager
 
@@ -99,7 +100,15 @@ class MainWindow(QMainWindow):
 
     def on_transcription_complete(self, transcript: str):
         self.statusBar().clearMessage()
-        self.transcript_display.append("Transcript:\n" + transcript)
+        # Use the WAV file header to get the actual duration of the recording
+        duration = get_wav_duration(self.audio_file)
+        wpm = calculate_wpm(transcript, duration)
+        display_text = (
+            f"Transcript:\n{transcript}\n\n"
+            f"Recording Duration: {duration:.2f} seconds\n"
+            f"Words per minute (WPM): {wpm:.2f}"
+        )
+        self.transcript_display.append(display_text)
 
     def on_transcription_error(self, error_message: str):
         self.statusBar().clearMessage()
