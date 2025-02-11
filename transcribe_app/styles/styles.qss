@@ -1,0 +1,53 @@
+/* style.qss */
+
+/* Set the main window background to a light gray */
+QMainWindow {
+    background-color: #f5f5f5;
+}
+
+/* Style QPushButton with a flat, modern look */
+QPushButton {
+    background-color: #3498db;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    padding: 10px 20px;
+    font-size: 14px;
+}
+
+QPushButton:hover {
+    background-color: #2980b9;
+}
+
+/* Style QProgressBar with a sleek design */
+QProgressBar {
+    border: 1px solid #bbb;
+    border-radius: 5px;
+    background-color: #eee;
+    text-align: center;
+    height: 20px;
+}
+
+QProgressBar::chunk {
+    background-color: #2ecc71;
+}
+
+/* Style for the loading label (perhaps with a subtle background color) */
+QLabel#loadingLabel {
+    background-color: #f0f0f0;
+    color: #333;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    padding: 5px;
+    font-size: 13px;
+}
+
+/* Style for the status label (for error messages or general status) */
+QLabel#statusLabel {
+    background-color: #ffdddd;
+    color: #900;
+    border: 1px solid #f99;
+    border-radius: 4px;
+    padding: 5px;
+    font-size: 13px;
+}
