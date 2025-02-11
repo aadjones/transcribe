@@ -1,5 +1,8 @@
 # transcribe_app/transcription.py
 
+import logging
+import os
+
 
 def transcribe_audio(
     audio_file: str, model_name: str = "tiny", use_postprocessing: bool = False
@@ -19,6 +22,11 @@ def transcribe_audio(
     Returns:
       str: The transcribed text.
     """
+    logging.info(f"Attempting to transcribe file: {audio_file}")
+    if not os.path.exists(audio_file):
+        logging.error(f"Audio file does not exist: {audio_file}")
+        raise FileNotFoundError(f"Audio file not found: {audio_file}")
+
     if "/" in model_name:
         # Load model from Hugging Face using the automatic speech recognition pipeline.
         from transformers import pipeline
