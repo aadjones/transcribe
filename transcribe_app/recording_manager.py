@@ -79,9 +79,9 @@ class RecordingManager:
 
         return temp_filename
 
-    def delete_recording(self):
-        # Secure deletion would need to overwrite the file contents before removal,
-        # which you would implement as needed.
-        filename = self.temp_file.fileName()
-        if os.path.exists(filename):
-            os.remove(filename)
+    # def delete_recording(self):
+    #     # Secure deletion would need to overwrite the file contents before removal,
+    #     # which you would implement as needed.
+    #     filename = self.temp_file.fileName()
+    #     if os.path.exists(filename):
+    #         os.remove(filename)
