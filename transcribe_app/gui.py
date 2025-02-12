@@ -1,4 +1,3 @@
-# main_window.py
 import sys
 
 from PySide6.QtWidgets import (
@@ -7,16 +6,15 @@ from PySide6.QtWidgets import (
     QMainWindow,
     QMessageBox,
     QPushButton,
+    QStatusBar,
     QTextEdit,
     QVBoxLayout,
     QWidget,
 )
 
-# Assume your transcription worker already exists; it takes an audio file path
+from transcribe_app.recording_manager import RecordingManager
 from transcribe_app.transcription_worker import TranscriptionWorker
 from transcribe_app.utils import calculate_wpm, get_wav_duration
-
-from .recording_manager import RecordingManager
 
 
 class MainWindow(QMainWindow):
@@ -25,7 +23,19 @@ class MainWindow(QMainWindow):
         self.setWindowTitle("Secure Transcription App")
         self.resize(800, 600)
 
-        # Left panel with controls
+        # Instance variables for external modules and state.
+        self.recorder = None  # RecordingManager instance
+        self.audio_file = None  # Path to the saved WAV file
+
+        self.init_ui()
+        self.connect_signals()
+
+    def init_ui(self):
+        """Builds the user interface."""
+        # Create status bar
+        self.setStatusBar(QStatusBar(self))
+
+        # Build control panel widget
         self.control_panel = QWidget()
         control_layout = QVBoxLayout()
         self.record_button = QPushButton("🎤 Record")
@@ -33,18 +43,21 @@ class MainWindow(QMainWindow):
         self.transcribe_button = QPushButton("✏️ Transcribe")
         self.delete_button = QPushButton("🗑️ Secure Delete")
 
-        control_layout.addWidget(self.record_button)
-        control_layout.addWidget(self.stop_button)
-        control_layout.addWidget(self.transcribe_button)
-        control_layout.addWidget(self.delete_button)
+        for btn in [
+            self.record_button,
+            self.stop_button,
+            self.transcribe_button,
+            self.delete_button,
+        ]:
+            control_layout.addWidget(btn)
         control_layout.addStretch()
         self.control_panel.setLayout(control_layout)
 
-        # Right panel for transcript display
+        # Build transcript display widget
         self.transcript_display = QTextEdit()
         self.transcript_display.setReadOnly(True)
 
-        # Main layout: split between controls and transcript
+        # Set up main layout
         main_widget = QWidget()
         main_layout = QHBoxLayout()
         main_layout.addWidget(self.control_panel)
@@ -52,45 +65,46 @@ class MainWindow(QMainWindow):
         main_widget.setLayout(main_layout)
         self.setCentralWidget(main_widget)
 
-        # Connect signals
+        # Initial UI state
+        self.stop_button.setEnabled(False)
+
+    def connect_signals(self):
+        """Connects UI signals to their respective slots."""
         self.record_button.clicked.connect(self.handle_record)
         self.stop_button.clicked.connect(self.handle_stop)
         self.transcribe_button.clicked.connect(self.handle_transcribe)
         self.delete_button.clicked.connect(self.handle_secure_delete)
 
-        # Initially, disable the stop button until recording starts
-        self.stop_button.setEnabled(False)
-        # Recording manager instance
-        self.recorder = None
-        # Path of the recorded file (set when recording stops)
-        self.audio_file = None
+    def update_status(self, message: str, timeout: int = 0):
+        """Helper to update the status bar."""
+        self.statusBar().showMessage(message, timeout)
 
     def handle_record(self):
+        """Starts recording audio."""
         try:
             self.recorder = RecordingManager(self)
             self.recorder.start_recording()
         except Exception as e:
             QMessageBox.critical(self, "Recording Error", str(e))
             return
-        # Update UI: disable Record, enable Stop
         self.record_button.setEnabled(False)
         self.stop_button.setEnabled(True)
-        self.statusBar().showMessage("Recording...", 0)
+        self.update_status("Recording...", 0)
 
     def handle_stop(self):
+        """Stops recording and saves the WAV file."""
         if self.recorder:
             self.audio_file = self.recorder.stop_recording()
-            self.statusBar().showMessage("Recording complete.", 3000)
-            # Reset buttons: allow re-recording and transcription
+            self.update_status("Recording complete.", 3000)
             self.record_button.setEnabled(True)
             self.stop_button.setEnabled(False)
 
     def handle_transcribe(self):
+        """Starts transcription if a recording exists."""
         if not self.audio_file:
             QMessageBox.information(self, "No Recording", "Please record audio first.")
             return
-        self.statusBar().showMessage("Transcribing...", 0)
-        # Create and start your transcription worker (assumed to be QThread-based)
+        self.update_status("Transcribing...", 0)
         self.worker = TranscriptionWorker(
             self.audio_file, model_name="tiny", use_postprocessing=False
         )
@@ -99,8 +113,9 @@ class MainWindow(QMainWindow):
         self.worker.start()
 
     def on_transcription_complete(self, transcript: str):
+        """Callback for when transcription is complete."""
         self.statusBar().clearMessage()
-        # Use the WAV file header to get the actual duration of the recording
+        # Use WAV metadata to get recording duration
         duration = get_wav_duration(self.audio_file)
         wpm = calculate_wpm(transcript, duration)
         display_text = (
@@ -111,15 +126,17 @@ class MainWindow(QMainWindow):
         self.transcript_display.append(display_text)
 
     def on_transcription_error(self, error_message: str):
+        """Callback for transcription errors."""
         self.statusBar().clearMessage()
         QMessageBox.critical(self, "Transcription Error", error_message)
 
     def handle_secure_delete(self):
+        """Securely deletes the recorded audio file."""
         if self.audio_file:
             from transcribe_app.secure_delete import secure_delete
 
             secure_delete(self.audio_file)
-            self.statusBar().showMessage("Temporary audio file securely deleted.", 3000)
+            self.update_status("Temporary audio file securely deleted.", 3000)
             self.audio_file = None
 
 
