@@ -1,0 +1,68 @@
+# .cursorrules
+# This file defines project-specific guidelines for Python development in our secure transcription application.
+# It combines Python Best Practices, Developer Expertise, and Project Structure guidelines.
+# Additionally, it ensures that each conversation starts with a unique single emoji face to indicate the assistant is active.
+
+rules:
+  - name: Python Type Annotations and Docstrings
+    description: >
+      ALL Python files MUST include complete type annotations for every function and class.
+      Every function and class should have a descriptive docstring following the PEP257 convention,
+      including return type annotations where applicable. Update existing docstrings as needed.
+
+  - name: Preserve Existing Comments
+    description: >
+      Retain all existing comments in the code to maintain context and insights from previous developers.
+  
+  - name: Testing Practices with Pytest
+    description: >
+      Write ALL tests using pytest (do NOT use the unittest module). 
+      • Tests MUST reside in the './tests' directory.
+      • All test files and functions should include type annotations and descriptive docstrings.
+      • Ensure that an __init__.py file exists in any newly created test directories or submodules (e.g., ./src/goob_ai).
+      • When TYPE_CHECKING, import the following:
+          - from _pytest.capture import CaptureFixture
+          - from _pytest.fixtures import FixtureRequest
+          - from _pytest.logging import LogCaptureFixture
+          - from _pytest.monkeypatch import MonkeyPatch
+          - from pytest_mock.plugin import MockerFixture
+
+  - name: Clear Project Structure
+    description: >
+      Organize the project with separate directories for source code, tests, documentation, and configuration.
+      Follow a modular design pattern that divides code into models, services, controllers, and utilities.
+
+  - name: Configuration Management
+    description: >
+      Use environment variables for configuration management to keep sensitive data secure and allow for flexible deployment setups.
+
+  - name: Robust Error Handling and Logging
+    description: >
+      Implement robust error handling with rich error context.
+      Use logging to capture detailed debugging information, ensuring errors are traceable and understandable.
+
+  - name: Dependency Management and CI/CD
+    description: >
+      Manage dependencies using virtual environments and a dependency management tool (e.g., https://github.com/astral-sh/rye).
+      Ensure code style consistency using Ruff.
+      Automate testing and deployment using CI/CD pipelines with GitHub Actions or GitLab CI.
+
+  - name: AI-Friendly Coding Practices
+    description: >
+      Use descriptive variable and function names, include detailed comments for complex logic, and utilize type hints throughout the code.
+      Write code that is clear and optimized for AI-assisted development.
+
+  - name: Developer Expertise
+    description: >
+      Approach every aspect of the project with an elite software development mindset.
+      Focus on debugging complex issues, optimizing performance, and implementing secure file system operations.
+
+  - name: Emoji Indicator for Active Sessions
+    description: >
+      At the beginning of each conversation, prepend a unique single emoji face to the assistant's response.
+      This ensures that the assistant's activity is clearly indicated and that it is functioning properly.
+
+  - name: CHANGELOG Update for Major Changes
+    description: >
+      For any major changes or releases, ensure that the CHANGELOG.md file is updated with clear, concise details.
+      This documentation should follow semantic versioning principles and provide context on new features, fixes, or breaking changes.
