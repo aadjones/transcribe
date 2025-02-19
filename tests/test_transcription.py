@@ -19,6 +19,9 @@ def test_transcribe_audio(monkeypatch, tmp_path):
     dummy_audio = tmp_path / "dummy.wav"
     dummy_audio.write_bytes(b"dummy content")
 
+    # Bypass WAV file validation for testing
+    monkeypatch.setattr(transcription, "validate_audio_file", lambda x: True)
+
     # Create a dummy module for 'whisper' with the dummy load_model function.
     dummy_whisper = types.ModuleType("whisper")
     dummy_whisper.load_model = dummy_load_model
