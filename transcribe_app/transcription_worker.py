@@ -1,5 +1,6 @@
 # transcribe_app/transcription_worker.py
 import logging
+
 from PySide6.QtCore import QThread, Signal
 
 
@@ -30,7 +31,7 @@ class TranscriptionWorker(QThread):
         try:
             # Import here to avoid issues with threading
             from transcribe_app.transcription import transcribe_audio
-            
+
             if not self._is_running:
                 return
 
@@ -40,15 +41,15 @@ class TranscriptionWorker(QThread):
                 model_name=self.model_name,
                 use_postprocessing=self.use_postprocessing,
             )
-            
+
             if not transcript:
                 raise RuntimeError("Transcription returned empty result")
-                
+
             if not self._is_running:
                 return
-                
+
             self.transcription_complete.emit(transcript)
-            
+
         except ImportError as e:
             error_msg = f"Could not import transcription module: {str(e)}"
             logging.error(error_msg)

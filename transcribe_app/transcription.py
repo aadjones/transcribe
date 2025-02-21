@@ -8,34 +8,36 @@ import wave
 def validate_audio_file(audio_file: str) -> bool:
     """
     Validate that the audio file exists and is a valid WAV file.
-    
+
     Args:
         audio_file (str): Path to the audio file to validate.
-        
+
     Returns:
         bool: True if the file is valid, False otherwise.
-        
+
     Raises:
         FileNotFoundError: If the file doesn't exist.
         RuntimeError: If the file is not a valid WAV file.
     """
     if not os.path.exists(audio_file):
         raise FileNotFoundError(f"Audio file not found: {audio_file}")
-        
+
     if not os.path.isfile(audio_file):
         raise RuntimeError(f"Path exists but is not a file: {audio_file}")
-        
+
     try:
-        with wave.open(audio_file, 'rb') as wav_file:
+        with wave.open(audio_file, "rb") as wav_file:
             if wav_file.getnframes() == 0:
                 raise RuntimeError("WAV file contains no frames")
             if wav_file.getsampwidth() not in [2, 4]:  # 16-bit or 32-bit
-                raise RuntimeError(f"Unsupported sample width: {wav_file.getsampwidth() * 8}-bit")
+                raise RuntimeError(
+                    f"Unsupported sample width: {wav_file.getsampwidth() * 8}-bit"
+                )
             if wav_file.getframerate() < 8000:  # Basic sanity check
                 raise RuntimeError(f"Sample rate too low: {wav_file.getframerate()} Hz")
     except wave.Error as e:
         raise RuntimeError(f"Invalid WAV file: {str(e)}")
-        
+
     return True
 
 
@@ -56,17 +58,17 @@ def transcribe_audio(
 
     Returns:
       str: The transcribed text.
-      
+
     Raises:
         FileNotFoundError: If the audio file doesn't exist.
         RuntimeError: If there are issues with the audio file or transcription process.
         ImportError: If required packages cannot be imported.
     """
     logging.info(f"Attempting to transcribe file: {audio_file}")
-    
+
     # Validate the audio file
     validate_audio_file(audio_file)
-    
+
     transcription = None
     try:
         if "/" in model_name:
@@ -107,7 +109,7 @@ def transcribe_audio(
 
         logging.info(f"Successfully transcribed {audio_file}")
         return transcription.strip()
-        
+
     except Exception as e:
         logging.error(f"Error transcribing {audio_file}: {str(e)}")
         raise

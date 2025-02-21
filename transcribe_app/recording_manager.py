@@ -1,27 +1,22 @@
 # recording_manager.py
 import logging
 import os
-import wave
 import time
-import numpy as np
+import wave
 
+import numpy as np
 from PySide6.QtCore import QIODevice, QTemporaryFile
-from PySide6.QtMultimedia import (
-    QAudioFormat, 
-    QAudioSource, 
-    QMediaDevices,
-    QAudio
-)
+from PySide6.QtMultimedia import QAudio, QAudioFormat, QAudioSource, QMediaDevices
 
 # Configure logging to capture all messages with timestamps
 logging.basicConfig(
     level=logging.DEBUG,
-    format='%(asctime)s.%(msecs)03d [%(levelname)s] %(message)s',
-    datefmt='%Y-%m-%d %H:%M:%S'
+    format="%(asctime)s.%(msecs)03d [%(levelname)s] %(message)s",
+    datefmt="%Y-%m-%d %H:%M:%S",
 )
 
 # Create a logger specific to the recording manager
-logger = logging.getLogger('RecordingManager')
+logger = logging.getLogger("RecordingManager")
 logger.setLevel(logging.DEBUG)
 
 # Ensure all handlers also have DEBUG level
@@ -45,25 +40,25 @@ class RecordingManager:
             raise RuntimeError("Cannot open temporary file for recording")
 
         logger.info(f"Created temporary file: {self.temp_file.fileName()}")
-        
+
         # Store the audio format
         self.audio_format = None
         self.audio_source = None
         self.recording_start_time = None
-        
+
         # Initialize with default format
         fmt = QAudioFormat()
         fmt.setSampleRate(44100)
         fmt.setChannelCount(1)
         fmt.setSampleFormat(QAudioFormat.Int16)  # Explicitly set 16-bit PCM format
-        
+
         devices = QMediaDevices()
         default_input = devices.defaultAudioInput()
-        
+
         # Log available audio devices and their properties
         all_inputs = QMediaDevices.audioInputs()
         if all_inputs:
-            logger.info(f"Available audio input devices:")
+            logger.info("Available audio input devices:")
             for device in all_inputs:
                 logger.info(
                     f"  - Device: {device.description()}\n"
@@ -76,11 +71,11 @@ class RecordingManager:
         else:
             logger.error("No audio input devices found!")
             raise RuntimeError("No audio input devices available")
-        
+
         if default_input is None:
             logger.error("No default audio input device found")
             raise RuntimeError("No default audio input device found")
-            
+
         logger.info(
             f"Using default input device:\n"
             f"  Description: {default_input.description()}\n"
@@ -90,7 +85,7 @@ class RecordingManager:
             f"Channels={default_input.preferredFormat().channelCount()}, "
             f"Format={default_input.preferredFormat().sampleFormat()}"
         )
-        
+
         if not default_input.isFormatSupported(fmt):
             preferred_fmt = default_input.preferredFormat()
             # Ensure we still use Int16 even with preferred format
@@ -111,9 +106,9 @@ class RecordingManager:
                 f"  Channels: {fmt.channelCount()}\n"
                 f"  Sample Format: {fmt.sampleFormat()}"
             )
-        
+
         self.audio_format = fmt
-        
+
         # Initialize WAV file header with actual format
         try:
             with wave.open(self.temp_file.fileName(), "wb") as wav_file:
@@ -126,7 +121,7 @@ class RecordingManager:
                     f"  Sample Width: {wav_file.getsampwidth() * 8} bits\n"
                     f"  Sample Rate: {wav_file.getframerate()} Hz"
                 )
-                
+
             # Verify the header was written correctly
             with wave.open(self.temp_file.fileName(), "rb") as wav_verify:
                 logger.debug(
@@ -147,19 +142,19 @@ class RecordingManager:
 
         devices = QMediaDevices()
         default_input = devices.defaultAudioInput()
-        
+
         if default_input is None:
             logger.error("No default audio input device found when starting recording")
             return
-            
+
         self.audio_source = QAudioSource(default_input, self.audio_format, self.parent)
-        
+
         # Set a reasonable buffer size (e.g., 100ms worth of audio)
-        buffer_size = int(self.audio_format.sampleRate() * 
-                         self.audio_format.channelCount() * 
-                         2 * 0.1)  # 2 bytes per sample, 0.1 seconds
+        buffer_size = int(
+            self.audio_format.sampleRate() * self.audio_format.channelCount() * 2 * 0.1
+        )  # 2 bytes per sample, 0.1 seconds
         self.audio_source.setBufferSize(buffer_size)
-        
+
         # Log the audio source state and properties
         logger.info(
             f"Audio source created:\n"
@@ -168,11 +163,11 @@ class RecordingManager:
             f"  Error: {self.audio_source.error()}\n"
             f"  Volume: {self.audio_source.volume()}"
         )
-        
+
         self.temp_file.seek(44)  # Skip WAV header
         self.audio_source.start(self.temp_file)
         self.recording_start_time = time.time()
-        
+
         # Verify recording started properly
         if self.audio_source.state() != QAudio.ActiveState:
             logger.error(
@@ -194,7 +189,7 @@ class RecordingManager:
             logger.debug("Stopping audio source...")
             self.audio_source.stop()
             time.sleep(0.5)  # Wait for buffers to flush
-            
+
             recording_duration = time.time() - self.recording_start_time
             logger.info(
                 f"Recording stopped:\n"
@@ -204,15 +199,17 @@ class RecordingManager:
                 f"  Buffer Size: {self.audio_source.bufferSize()} bytes\n"
                 f"  Volume: {self.audio_source.volume()}"
             )
-            
+
             # Store filename before closing
             temp_filename = self.temp_file.fileName()
-            
+
             # Calculate file stats before closing
             file_size = self.temp_file.size()
             data_size = file_size - 44  # Subtract WAV header size
-            expected_samples = data_size // (self.audio_format.channelCount() * 2)  # Account for channels
-            
+            expected_samples = data_size // (
+                self.audio_format.channelCount() * 2
+            )  # Account for channels
+
             logger.debug(
                 f"Initial file statistics:\n"
                 f"  Total file size: {file_size} bytes\n"
@@ -235,18 +232,18 @@ class RecordingManager:
                 f"  Expected bytes: {data_size}\n"
                 f"  Matches expected: {raw_len == data_size}"
             )
-            
+
             if raw_len == 0:
                 logger.error("No audio data captured from microphone!")
                 return None
-            
+
             # Analyze the raw audio data
             try:
                 sample_array = np.frombuffer(raw_data[:1000], dtype=np.int16)
                 mean_abs = np.mean(np.abs(sample_array)) if len(sample_array) else 0
                 max_abs = np.max(np.abs(sample_array)) if len(sample_array) else 0
                 zero_count = np.sum(sample_array == 0) if len(sample_array) else 0
-                
+
                 logger.debug(
                     f"Raw audio analysis:\n"
                     f"  Data size: {raw_len} bytes\n"
@@ -257,7 +254,7 @@ class RecordingManager:
                     f"  Appears to be silence: {mean_abs < 10}\n"
                     f"  Sample count matches: {len(sample_array) * 2 == raw_len}"
                 )
-                
+
                 if mean_abs < 1:
                     logger.warning("Audio appears to be completely silent!")
             except Exception as e:
@@ -265,13 +262,13 @@ class RecordingManager:
 
             # Close current file handle
             self.temp_file.close()
-            
+
             # Small delay to ensure Windows releases the file handle
             time.sleep(0.5)
-            
+
             try:
                 logger.debug(f"Opening WAV file for verification: {temp_filename}")
-                
+
                 # First, rewrite the WAV file with proper headers and data
                 logger.debug(f"Rewriting WAV file with {raw_len} bytes of PCM data")
                 with wave.open(temp_filename, "wb") as wav_write:
@@ -280,16 +277,16 @@ class RecordingManager:
                     wav_write.setframerate(self.audio_format.sampleRate())
                     wav_write.writeframes(raw_data)
                 logger.debug("Finished rewriting WAV header + data")
-                
+
                 # Now verify the rewritten file
                 with wave.open(temp_filename, "rb") as wav_read:
                     frames = wav_read.getnframes()
                     channels = wav_read.getnchannels()
                     rate = wav_read.getframerate()
                     width = wav_read.getsampwidth()
-                    
+
                     expected_frames = raw_len // (channels * width)
-                    
+
                     logger.info(
                         f"WAV file properties after rewrite:\n"
                         f"  Frames: {frames}\n"
@@ -301,7 +298,7 @@ class RecordingManager:
                         f"  Expected Duration: {frames / rate:.2f} seconds\n"
                         f"  File size: {os.path.getsize(temp_filename)} bytes"
                     )
-                    
+
                     if frames == 0:
                         logger.error(
                             f"WAV file reports 0 frames after rewrite:\n"
@@ -312,13 +309,13 @@ class RecordingManager:
                             f"  Sample width: {width} bytes"
                         )
                         raise RuntimeError("WAV file reports 0 frames after rewrite")
-                    
+
                     # Read all audio frames
                     logger.debug(f"Attempting to read {frames} frames...")
                     audio_data = wav_read.readframes(frames)
                     actual_bytes = len(audio_data)
                     expected_bytes = frames * channels * width
-                    
+
                     logger.debug(
                         f"Frame read results:\n"
                         f"  Expected bytes: {expected_bytes}\n"
@@ -326,7 +323,7 @@ class RecordingManager:
                         f"  Matches expected: {actual_bytes == expected_bytes}\n"
                         f"  Matches raw data: {actual_bytes == raw_len}"
                     )
-                    
+
                     if not audio_data:
                         logger.error(
                             f"No audio data read from WAV file:\n"
@@ -337,14 +334,20 @@ class RecordingManager:
                             f"  Raw data size: {raw_len} bytes"
                         )
                         raise RuntimeError("No audio data read from WAV file")
-                    
+
                     # Analyze the WAV audio data
                     try:
                         sample_array = np.frombuffer(audio_data[:2000], dtype=np.int16)
-                        mean_abs = np.mean(np.abs(sample_array)) if len(sample_array) else 0
-                        max_abs = np.max(np.abs(sample_array)) if len(sample_array) else 0
-                        zero_count = np.sum(sample_array == 0) if len(sample_array) else 0
-                        
+                        mean_abs = (
+                            np.mean(np.abs(sample_array)) if len(sample_array) else 0
+                        )
+                        max_abs = (
+                            np.max(np.abs(sample_array)) if len(sample_array) else 0
+                        )
+                        zero_count = (
+                            np.sum(sample_array == 0) if len(sample_array) else 0
+                        )
+
                         logger.info(
                             f"WAV audio analysis:\n"
                             f"  Data size: {len(audio_data)} bytes\n"
@@ -356,12 +359,14 @@ class RecordingManager:
                             f"  Appears to be silence: {mean_abs < 10}\n"
                             f"  Matches raw data: {np.array_equal(sample_array, np.frombuffer(raw_data[:2000], dtype=np.int16))}"
                         )
-                        
+
                         if mean_abs < 1:
-                            logger.warning("Final audio appears to be completely silent!")
+                            logger.warning(
+                                "Final audio appears to be completely silent!"
+                            )
                     except Exception as e:
                         logger.warning(f"Could not analyze WAV audio data: {e}")
-                
+
                 # Final verification
                 if os.path.exists(temp_filename):
                     file_size = os.path.getsize(temp_filename)
@@ -382,7 +387,7 @@ class RecordingManager:
                 else:
                     logger.error("File does not exist after saving!")
                     return None
-                
+
             except Exception as e:
                 logger.error(f"Error finalizing WAV file: {e}")
                 return None
@@ -392,50 +397,50 @@ class RecordingManager:
                 logger.debug("Cleaning up audio source...")
                 self.audio_source.stop()
                 self.audio_source = None
-            
+
             if self.temp_file is not None and self.temp_file.isOpen():
                 logger.debug("Closing temporary file...")
                 self.temp_file.close()
-            
+
             self.recording_start_time = None
-            
+
         return temp_filename
 
     def delete_recording(self, filename=None, max_attempts=5, delay=0.5):
         """
         Securely delete a recording file with retry logic for Windows file locks.
-        
+
         Args:
             filename (str, optional): The file to delete. If None, uses the temp file name.
             max_attempts (int): Maximum number of deletion attempts.
             delay (float): Delay in seconds between attempts.
-            
+
         Returns:
             bool: True if deletion was successful, False otherwise.
         """
         if filename is None and self.temp_file is not None:
             filename = self.temp_file.fileName()
-        
+
         if not filename or not os.path.exists(filename):
             logger.debug(f"No file to delete or file doesn't exist: {filename}")
             return True
-            
+
         logger.debug(f"Attempting to delete file: {filename}")
-        
+
         # Ensure the file is closed if it's our temp file
         if self.temp_file is not None and self.temp_file.isOpen():
             logger.debug("Closing temporary file before deletion...")
             self.temp_file.close()
             time.sleep(0.1)  # Small delay after closing
-            
+
         # Try to delete with multiple attempts
         for attempt in range(max_attempts):
             try:
                 logger.debug(f"Delete attempt {attempt + 1}/{max_attempts}")
-                
+
                 # First try to open and close the file to check if it's locked
                 try:
-                    with open(filename, 'rb') as test_file:
+                    with open(filename, "rb"):
                         pass
                     logger.debug("File is not locked")
                 except PermissionError:
@@ -443,12 +448,12 @@ class RecordingManager:
                     if attempt < max_attempts - 1:
                         time.sleep(delay)
                     continue
-                    
+
                 # Try to delete the file
                 os.remove(filename)
                 logger.info(f"Successfully deleted file on attempt {attempt + 1}")
                 return True
-                
+
             except PermissionError as e:
                 logger.warning(
                     f"Permission error on delete attempt {attempt + 1}: {e}\n"
@@ -462,7 +467,7 @@ class RecordingManager:
             except Exception as e:
                 logger.error(f"Unexpected error trying to delete file: {e}")
                 return False
-                
+
         logger.error(
             f"Failed to delete file after {max_attempts} attempts: {filename}\n"
             "File may be locked by another process"

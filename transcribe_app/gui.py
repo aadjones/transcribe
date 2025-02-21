@@ -1,8 +1,8 @@
+import logging
 import os
 import sys
-import logging
-import wave
 import time
+import wave
 
 from PySide6.QtWidgets import (
     QApplication,
@@ -103,9 +103,12 @@ class MainWindow(QMainWindow):
             self.stop_button.setEnabled(True)
             self.update_status("Recording...", 0)
         except Exception as e:
-            QMessageBox.critical(self, "Recording Error", 
-                               f"Could not start recording: {str(e)}\n"
-                               "Please check your microphone settings.")
+            QMessageBox.critical(
+                self,
+                "Recording Error",
+                f"Could not start recording: {str(e)}\n"
+                "Please check your microphone settings.",
+            )
             self.record_button.setEnabled(True)
             self.stop_button.setEnabled(False)
             self.recorder = None
@@ -123,10 +126,10 @@ class MainWindow(QMainWindow):
             plain_wav = self.recorder.stop_recording()
             if not plain_wav:
                 raise RuntimeError("Recording failed to save properly")
-            
+
             # Verify the WAV file before encryption
             try:
-                with wave.open(plain_wav, 'rb') as wav_file:
+                with wave.open(plain_wav, "rb") as wav_file:
                     frames = wav_file.getnframes()
                     channels = wav_file.getnchannels()
                     rate = wav_file.getframerate()
@@ -142,7 +145,7 @@ class MainWindow(QMainWindow):
             except Exception as e:
                 logging.error(f"Error verifying WAV file: {e}")
                 raise
-            
+
             self.update_status("Recording complete. Encrypting...", 0)
             self.record_button.setEnabled(True)
             self.stop_button.setEnabled(False)
@@ -151,7 +154,7 @@ class MainWindow(QMainWindow):
             self.encryption_key = generate_key()
             # Define an encrypted filename; e.g. replace .wav with .enc.wav
             encrypted_file = plain_wav.replace(".wav", ".enc.wav")
-            
+
             try:
                 encrypt_file(plain_wav, encrypted_file, self.encryption_key)
                 # Only remove the plain WAV if encryption succeeded
@@ -160,7 +163,9 @@ class MainWindow(QMainWindow):
                     for attempt in range(3):
                         try:
                             os.remove(plain_wav)
-                            logging.info(f"Successfully deleted plain WAV file on attempt {attempt + 1}")
+                            logging.info(
+                                f"Successfully deleted plain WAV file on attempt {attempt + 1}"
+                            )
                             break
                         except PermissionError as e:
                             logging.warning(f"Delete attempt {attempt + 1} failed: {e}")
@@ -169,7 +174,7 @@ class MainWindow(QMainWindow):
                         except Exception as e:
                             logging.warning(f"Could not remove plain WAV file: {e}")
                             break
-                            
+
                 self.audio_file = encrypted_file
                 self.update_status("Recording encrypted and saved.", 3000)
                 logging.info(f"Encrypted file saved as: {self.audio_file}")
@@ -178,15 +183,15 @@ class MainWindow(QMainWindow):
                     self,
                     "Encryption Warning",
                     "Could not encrypt the recording. Using unencrypted file instead.\n"
-                    f"Error: {str(e)}"
+                    f"Error: {str(e)}",
                 )
-                self.audio_file = plain_wav  # Fallback to plain file if encryption fails
-                
+                self.audio_file = (
+                    plain_wav  # Fallback to plain file if encryption fails
+                )
+
         except Exception as e:
             QMessageBox.critical(
-                self,
-                "Recording Error",
-                f"Error while stopping recording: {str(e)}"
+                self, "Recording Error", f"Error while stopping recording: {str(e)}"
             )
             self.audio_file = None
             self.encryption_key = None
@@ -201,22 +206,23 @@ class MainWindow(QMainWindow):
 
         # Define a temporary filename for the decrypted file
         decrypted_file = self.audio_file.replace(".enc.wav", ".dec.wav")
-        
+
         # Clean up any existing decrypted file
         if os.path.exists(decrypted_file):
             try:
                 os.remove(decrypted_file)
             except Exception as e:
                 logging.warning(f"Could not remove existing decrypted file: {e}")
-        
+
         self.update_status("Decrypting for transcription...", 0)
         try:
             decrypt_file(self.audio_file, decrypted_file, self.encryption_key)
             if not os.path.exists(decrypted_file):
                 raise RuntimeError("Decryption failed to create output file")
         except Exception as e:
-            QMessageBox.critical(self, "Decryption Error", 
-                               f"Could not decrypt the recording: {str(e)}")
+            QMessageBox.critical(
+                self, "Decryption Error", f"Could not decrypt the recording: {str(e)}"
+            )
             return
 
         self.update_status("Transcribing...", 0)
@@ -226,11 +232,14 @@ class MainWindow(QMainWindow):
             )
             self.worker.transcription_complete.connect(self.on_transcription_complete)
             self.worker.transcription_error.connect(self.on_transcription_error)
-            self.worker.finished.connect(lambda: self.cleanup_decrypted_file(decrypted_file))
+            self.worker.finished.connect(
+                lambda: self.cleanup_decrypted_file(decrypted_file)
+            )
             self.worker.start()
         except Exception as e:
-            QMessageBox.critical(self, "Transcription Error",
-                               f"Could not start transcription: {str(e)}")
+            QMessageBox.critical(
+                self, "Transcription Error", f"Could not start transcription: {str(e)}"
+            )
             try:
                 os.remove(decrypted_file)
             except Exception:
@@ -242,7 +251,9 @@ class MainWindow(QMainWindow):
             for attempt in range(3):
                 try:
                     os.remove(decrypted_file)
-                    logging.info(f"Cleaned up decrypted file on attempt {attempt + 1}: {decrypted_file}")
+                    logging.info(
+                        f"Cleaned up decrypted file on attempt {attempt + 1}: {decrypted_file}"
+                    )
                     break
                 except PermissionError as e:
                     logging.warning(f"Delete attempt {attempt + 1} failed: {e}")
@@ -260,7 +271,7 @@ class MainWindow(QMainWindow):
             decrypted_file = self.audio_file.replace(".enc.wav", ".dec.wav")
             duration = get_wav_duration(decrypted_file)
             wpm = calculate_wpm(transcript, duration)
-            
+
             display_text = (
                 f"Transcript:\n{transcript}\n\n"
                 f"Recording Duration: {duration:.2f} seconds\n"
@@ -275,9 +286,10 @@ class MainWindow(QMainWindow):
     def on_transcription_error(self, error_message: str):
         """Handles transcription errors."""
         self.statusBar().clearMessage()
-        QMessageBox.critical(self, "Transcription Error", 
-                           f"Transcription failed: {error_message}")
-        
+        QMessageBox.critical(
+            self, "Transcription Error", f"Transcription failed: {error_message}"
+        )
+
     def handle_secure_delete(self):
         """Securely deletes both the encrypted and decrypted audio files and discards the key."""
         if self.audio_file:
@@ -287,28 +299,34 @@ class MainWindow(QMainWindow):
                 self.audio_file,  # Encrypted file
                 self.audio_file.replace(".enc.wav", ".dec.wav"),  # Decrypted file
             ]
-            
+
             for file_path in files_to_delete:
                 if os.path.exists(file_path):
                     # Try to verify the file before deletion
                     try:
-                        with wave.open(file_path, 'rb') as wav_file:
+                        with wave.open(file_path, "rb") as wav_file:
                             logging.info(
                                 f"Pre-deletion WAV verification for {os.path.basename(file_path)}:\n"
                                 f"  Frames: {wav_file.getnframes()}\n"
                                 f"  Duration: {wav_file.getnframes()/wav_file.getframerate():.2f} seconds"
                             )
                     except Exception as e:
-                        logging.warning(f"Could not verify WAV file before deletion: {e}")
-                    
+                        logging.warning(
+                            f"Could not verify WAV file before deletion: {e}"
+                        )
+
                     # Attempt secure deletion
                     for attempt in range(3):
                         try:
                             secure_delete(file_path)
-                            logging.info(f"Securely deleted {file_path} on attempt {attempt + 1}")
+                            logging.info(
+                                f"Securely deleted {file_path} on attempt {attempt + 1}"
+                            )
                             break
                         except PermissionError as e:
-                            logging.warning(f"Secure delete attempt {attempt + 1} failed: {e}")
+                            logging.warning(
+                                f"Secure delete attempt {attempt + 1} failed: {e}"
+                            )
                             if attempt < 2:
                                 time.sleep(0.5)
                         except Exception as e:
@@ -317,10 +335,10 @@ class MainWindow(QMainWindow):
                                 self,
                                 "Deletion Warning",
                                 f"Could not securely delete {os.path.basename(file_path)}.\n"
-                                f"Error: {str(e)}"
+                                f"Error: {str(e)}",
                             )
                             break
-            
+
             self.update_status("Temporary audio files securely deleted.", 3000)
             self.audio_file = None
             # Destroy the encryption key
