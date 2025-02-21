@@ -1,4 +1,4 @@
-.PHONY: default clean install test lint
+.PHONY: default clean install test lint run
 
 # Default target (runs install)
 default: install
@@ -25,3 +25,7 @@ lint:
 	./env/bin/flake8 .
 	./env/bin/black --check .
 	./env/bin/isort --check-only .
+
+# Run the application
+run:
+	./env/bin/python transcribe_app/main.py
