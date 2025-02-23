@@ -49,4 +49,62 @@ Add a segmented model picker to the GUI that allows users to select between Whis
 - Maintain backward compatibility
 - Consider future model additions
 - Follow project's Python type annotation requirements
-- Preserve existing comments and documentation 
+- Preserve existing comments and documentation
+
+# Dropdown Menu Implementation Plan
+
+## Feature Overview
+Replace the current segmented model picker with Qt's built-in QComboBox component for a cleaner and more scalable model selection interface.
+
+## Implementation Steps
+
+### Frontend Changes
+1. Component Updates
+   - [x] Import QComboBox from PySide6.QtWidgets
+   - [x] Replace existing QButtonGroup with QComboBox in the control panel
+   - [x] Add model options to QComboBox (Whisper Tiny, Small, Medical)
+   - [x] Set default selection to Whisper Tiny
+   - [x] Add informative tooltips for each model option
+
+2. State Management
+   - [x] Update get_selected_model method to work with QComboBox
+   - [x] Connect QComboBox's currentIndexChanged signal to handle selection changes
+   - [x] Preserve model selection state during transcription
+
+### Integration
+1. Replace Existing Control
+   - [x] Remove QButtonGroup and related buttons
+   - [x] Insert QComboBox into the existing control_layout
+   - [x] Update layout spacing and alignment for visual consistency
+   - [x] Preserve all existing model selection logic
+
+2. Style Updates
+   - [x] Use Qt's native styling (clean and consistent with system)
+   - [x] Leverage built-in hover and focus states
+   - [x] Maintain visual hierarchy in control panel
+   - [x] Match application's design system using native widgets
+
+### Testing Updates
+1. Component Testing
+   - [x] Update test_model_picker_exists for QComboBox
+   - [x] Test dropdown functionality using Qt's testing tools
+   - [x] Verify model selection using QComboBox methods
+   - [x] Test tooltips and accessibility features
+
+2. Integration Testing
+   - [x] Verify model selection still works end-to-end
+   - [x] Test state persistence with QComboBox
+   - [x] Verify no regression in existing functionality
+   - [x] Test QComboBox signals and slots
+
+2. Update CHANGELOG
+   - [x] Document UI improvement
+   - [x] Note the switch to QComboBox
+   - [x] Update version number
+
+## Notes
+- [x] Leverage Qt's built-in accessibility features
+- [x] Use Qt's native dropdown animations
+- [x] Maintain consistent styling with other Qt widgets
+- [x] Plan for future model additions using QComboBox's dynamic item management
+- [x] Rely on Qt's built-in keyboard navigation and focus handling 

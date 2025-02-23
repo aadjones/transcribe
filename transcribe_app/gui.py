@@ -4,9 +4,10 @@ import sys
 import time
 import wave
 
+from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (
     QApplication,
-    QButtonGroup,
+    QComboBox,
     QHBoxLayout,
     QMainWindow,
     QMessageBox,
@@ -48,28 +49,39 @@ class MainWindow(QMainWindow):
         self.control_panel = QWidget()
         control_layout = QVBoxLayout()
 
-        # Create model picker group
+        # Create model picker dropdown
         model_layout = QHBoxLayout()
-        self.model_picker = QButtonGroup(self)
-        self.model_picker.setExclusive(
-            True
-        )  # Only one button can be selected at a time
+        self.model_picker = QComboBox(self)
 
-        # Create model selection buttons
+        # Add model options with tooltips
         models = [
-            ("Whisper Tiny", "tiny"),
-            ("Whisper Small", "small"),
-            ("Medical Model", "bqtsio/whisper-large-rad"),
+            (
+                "Whisper Tiny",
+                "tiny",
+                "Fastest model - optimized for speed but may be less accurate",
+            ),
+            (
+                "Whisper Small",
+                "small",
+                "Balanced model - good trade-off between speed and accuracy",
+            ),
+            (
+                "Medical Model",
+                "bqtsio/whisper-large-rad",
+                "Medical-specific model - fine-tuned for medical speech, highest accuracy but slower",
+            ),
         ]
 
-        for i, (label, model_id) in enumerate(models):
-            btn = QPushButton(label)
-            btn.setCheckable(True)
-            if i == 0:  # Set Whisper Tiny as default
-                btn.setChecked(True)
-            self.model_picker.addButton(btn, i)
-            model_layout.addWidget(btn)
+        for label, model_id, tooltip in models:
+            self.model_picker.addItem(label, userData=model_id)
+            self.model_picker.setItemData(
+                self.model_picker.count() - 1, tooltip, Qt.ToolTipRole
+            )
 
+        # Set Whisper Tiny as default
+        self.model_picker.setCurrentIndex(0)
+
+        model_layout.addWidget(self.model_picker)
         control_layout.addLayout(model_layout)
         control_layout.addSpacing(
             10
@@ -112,6 +124,7 @@ class MainWindow(QMainWindow):
         self.stop_button.clicked.connect(self.handle_stop)
         self.transcribe_button.clicked.connect(self.handle_transcribe)
         self.delete_button.clicked.connect(self.handle_secure_delete)
+        self.model_picker.currentIndexChanged.connect(self.handle_model_changed)
 
     def update_status(self, message: str, timeout: int = 0):
         self.statusBar().showMessage(message, timeout)
@@ -230,8 +243,7 @@ class MainWindow(QMainWindow):
 
     def get_selected_model(self) -> str:
         """Returns the ID of the currently selected model."""
-        models = ["tiny", "small", "bqtsio/whisper-large-rad"]
-        return models[self.model_picker.checkedId()]
+        return self.model_picker.currentData()
 
     def handle_transcribe(self):
         """Decrypts the recording and launches transcription."""
@@ -380,6 +392,17 @@ class MainWindow(QMainWindow):
             self.audio_file = None
             # Destroy the encryption key
             self.encryption_key = None
+
+    def handle_model_changed(self, index: int):
+        """Handles when the user selects a different model.
+
+        Args:
+            index: The index of the newly selected model (automatically provided by Qt)
+        """
+        model_name = self.model_picker.currentText()
+        model_id = self.model_picker.currentData()
+        self.update_status(f"Selected model: {model_name}", 3000)
+        logging.info(f"Model changed to: {model_name} (ID: {model_id})")
 
 
 if __name__ == "__main__":
