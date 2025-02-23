@@ -22,7 +22,7 @@ jobs:
       - name: Install system dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y portaudio19-dev ffmpeg
+          sudo apt-get install -y portaudio19-dev ffmpeg xvfb qt6-base-dev
 
       - name: Install dependencies
         run: |
@@ -32,4 +32,11 @@ jobs:
 
       - name: Run tests
         run: |
-          pytest
+          xvfb-run --auto-servernum pytest
+
+      - name: Upload coverage report
+        uses: actions/upload-artifact@v3
+        with:
+          name: coverage-report
+          path: htmlcov/
+        if: always()
