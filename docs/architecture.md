@@ -1,6 +1,6 @@
 # Architecture Overview
 
-This document provides a high-level overview of the Transcribe App, its core components, and how they interact. The application is designed to run locally, transcribe audio using the Whisper model, and securely delete sensitive files. It is built using Python, with a PySide6-based GUI, and follows a modular design.
+This document provides a high-level overview of the Transcribe App, its core components, and how they interact. The application is designed to run locally, transcribe audio using multiple transcription models, and securely delete sensitive files. It is built using Python, with a PySide6-based GUI, and follows a modular design.
 
 ---
 
@@ -21,23 +21,41 @@ The main package is organized into several modules, each responsible for a speci
   - **Purpose:**  
     Contains the code for the graphical user interface.
   - **Key Components:**  
-    - `MainWindow` class that sets up the window, layout, and widgets (buttons for recording, transcribing, secure deletion, and a text area for displaying transcriptions).
+    - `MainWindow` class that sets up the window, layout, and widgets
+    - Model selection interface for choosing transcription models
+    - Recording and transcription controls
+    - Transcript display area
   - **Interaction:**  
-    - Connects user interactions (button clicks) to backend functions (e.g., record audio, run transcription).
+    - Connects user interactions to backend functions
+    - Manages model selection and transcription workflow
 
 - **`audio_recorder.py`**
   - **Purpose:**  
-    Manages audio recording functionality using libraries such as `sounddevice` and `soundfile`.
+    Manages audio recording functionality using sounddevice.
   - **Key Function:**  
-    - `record_audio(filename, duration, fs)`: Records audio for a specified duration at a given sample rate, saving the recording as a WAV file.
+    - `record_audio(filename, duration, fs)`: Records audio with configurable parameters.
 
 - **`transcription.py`**
   - **Purpose:**  
-    Handles the transcription of audio files using the OpenAI Whisper model.
-  - **Key Function:**  
-    - `transcribe_audio(audio_file)`: Loads the Whisper model (e.g., the "tiny" model) and returns a transcription of the given audio file.
-  - **Note:**  
-    - The module can be configured to use different devices (CPU, MPS for Apple Silicon) as needed.
+    Handles the transcription of audio files using multiple model options.
+  - **Key Features:**  
+    - Support for OpenAI Whisper models (tiny, small)
+    - Integration with Hugging Face models for specialized transcription
+    - Model validation and error handling
+    - Configurable model selection
+  - **Models:**
+    - Whisper Tiny: Fast, general-purpose transcription
+    - Whisper Small: Better accuracy, still efficient
+    - Medical Model: Specialized for medical transcription
+
+- **`transcription_worker.py`**
+  - **Purpose:**  
+    Manages asynchronous transcription processing.
+  - **Features:**  
+    - Non-blocking model loading and transcription
+    - Progress indicators for model loading
+    - Error handling and status updates
+    - Support for multiple model types
 
 - **`secure_delete.py`**
   - **Purpose:**  
@@ -121,3 +139,40 @@ flowchart TD
 
 **Additional Features:**
 Consider adding features like speaker diarization or real-time transcription, if requirements evolve.
+
+## Model Selection Architecture
+
+The application implements a flexible model selection system:
+
+1. **Model Registry:**
+   - Centralized model configuration in `transcription.py`
+   - Support for both local Whisper and remote Hugging Face models
+   - Model metadata including size and description
+
+2. **Selection Interface:**
+   - Segmented control in the GUI for model selection
+   - Default to Whisper Tiny for quick transcription
+   - Dynamic model loading based on selection
+
+3. **Progress Tracking:**
+   - Visual feedback during model loading
+   - Size-aware progress indicators
+   - Model-specific status messages
+
+## Security and Performance
+
+- **Local Processing:**
+  - All transcription happens locally
+  - No data sent to external services
+  - Secure file handling and deletion
+
+- **Resource Management:**
+  - Models loaded on-demand
+  - Memory cleared after transcription
+  - Progress tracking for large models
+
+## Future Enhancements
+- Support for additional Whisper models
+- Custom model fine-tuning integration
+- Real-time transcription capabilities
+- Enhanced progress tracking for model loading

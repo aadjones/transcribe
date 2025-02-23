@@ -6,6 +6,7 @@ import wave
 
 from PySide6.QtWidgets import (
     QApplication,
+    QButtonGroup,
     QHBoxLayout,
     QMainWindow,
     QMessageBox,
@@ -46,6 +47,35 @@ class MainWindow(QMainWindow):
         # Build control panel
         self.control_panel = QWidget()
         control_layout = QVBoxLayout()
+
+        # Create model picker group
+        model_layout = QHBoxLayout()
+        self.model_picker = QButtonGroup(self)
+        self.model_picker.setExclusive(
+            True
+        )  # Only one button can be selected at a time
+
+        # Create model selection buttons
+        models = [
+            ("Whisper Tiny", "tiny"),
+            ("Whisper Small", "small"),
+            ("Medical Model", "bqtsio/whisper-large-rad"),
+        ]
+
+        for i, (label, model_id) in enumerate(models):
+            btn = QPushButton(label)
+            btn.setCheckable(True)
+            if i == 0:  # Set Whisper Tiny as default
+                btn.setChecked(True)
+            self.model_picker.addButton(btn, i)
+            model_layout.addWidget(btn)
+
+        control_layout.addLayout(model_layout)
+        control_layout.addSpacing(
+            10
+        )  # Add some space between model picker and other buttons
+
+        # Add existing buttons
         self.record_button = QPushButton("🎤 Record")
         self.stop_button = QPushButton("⏹️ Stop")
         self.transcribe_button = QPushButton("✏️ Transcribe")
@@ -198,6 +228,11 @@ class MainWindow(QMainWindow):
         finally:
             self.recorder = None  # Clean up the recorder instance
 
+    def get_selected_model(self) -> str:
+        """Returns the ID of the currently selected model."""
+        models = ["tiny", "small", "bqtsio/whisper-large-rad"]
+        return models[self.model_picker.checkedId()]
+
     def handle_transcribe(self):
         """Decrypts the recording and launches transcription."""
         if not self.audio_file or not self.encryption_key:
@@ -227,8 +262,10 @@ class MainWindow(QMainWindow):
 
         self.update_status("Transcribing...", 0)
         try:
+            # Use the selected model for transcription
+            model_name = self.get_selected_model()
             self.worker = TranscriptionWorker(
-                decrypted_file, model_name="tiny", use_postprocessing=False
+                decrypted_file, model_name=model_name, use_postprocessing=False
             )
             self.worker.transcription_complete.connect(self.on_transcription_complete)
             self.worker.transcription_error.connect(self.on_transcription_error)

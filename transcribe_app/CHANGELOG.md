@@ -7,7 +7,39 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Added
+### 2025-02-23 - Model Selection Feature
+#### Added
+- Model selection interface with support for multiple transcription models:
+  - Whisper Tiny (default, fastest)
+  - Whisper Small (better accuracy)
+  - Medical Model (specialized for medical transcription)
+- Progress tracking for model loading with size awareness
+- Model validation and availability checks
+- Enhanced error handling for model-specific issues
+
+#### Changed
+- Added support for Hugging Face models alongside Whisper
+- Enhanced model loading with progress indicators
+- Improved error handling and user feedback
+
+#### Dependencies
+- Added transformers package for Hugging Face model support
+- Updated all package versions with specific constraints
+- Added torch as a required dependency
+- Enhanced Python version compatibility documentation
+- Added pytest-qt and pytest-mock for GUI testing
+- Added Qt6 development packages for CI environment
+
+#### Testing
+- Added comprehensive GUI tests for model picker functionality
+- Added tests for model selection persistence
+- Added tests for transcription integration
+- Added model registry validation tests
+- Enhanced CI pipeline with GUI testing support
+- Added test coverage reporting and artifacts
+
+### 2025-02-22 - Audio Processing Improvements
+#### Added
 - Comprehensive debug logging system with millisecond precision timestamps
 - Audio data analysis with silence detection and sample verification
 - Detailed device enumeration and format compatibility logging
@@ -16,18 +48,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - WAV file integrity checks and verification
 - Post-processing support for transcription text correction
 - Test utilities for generating valid WAV files with configurable parameters
-- Helper function `create_dummy_wav()` for testing with proper RIFF headers
 
-### Changed
+#### Changed
 - Switched to explicit 16-bit PCM format for WAV files
 - Improved error handling for audio device detection
 - Enhanced temporary file management using QTemporaryFile
 - Updated secure deletion with multiple retry attempts
 - Refined resource cleanup and handle release procedures
 - Improved WAV header handling and verification
-- Modified test setup to bypass WAV validation in transcription tests
 
-### Fixed
+#### Fixed
 - [WinError 32] file locking issues on Windows
 - Audio format compatibility issues with Qt 6
 - Silent recording detection and reporting
@@ -35,8 +65,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - WAV file corruption issues during save operations
 - Test failures related to invalid WAV headers by using monkeypatch
 
-### Testing
-- Added `create_dummy_wav()` utility function with configurable:
+#### Testing
+- Added `create_dummy_wav()` utility function with configurable parameters:
   - Duration
   - Sample rate
   - Channel count
@@ -45,12 +75,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Enhanced dummy model testing with valid audio files
 - Added validation checks for WAV file integrity in tests
 
-### Removed
+#### Removed
 - References to deprecated Qt audio APIs
 - Unused compression type checks for WAV files
 - Legacy audio format configurations
 
-## [0.1.0] - 2025-02-18
+## [0.1.0] - 2024-02-18
 
 ### Added
 - Initial implementation of secure transcription application
@@ -90,11 +120,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 When making significant changes to the codebase, please:
 
-1. Add a new entry under the [Unreleased] section
-2. Include the date of the change
-3. Categorize the change as Added, Changed, Fixed, or Removed
-4. Provide a brief but clear description of the change
-5. Include any relevant technical details or impact on existing functionality
+1. Each development session must be documented under its own dated section
+2. Include the full date (YYYY-MM-DD) and a brief title for the session
+3. Within each dated section, categorize changes as:
+   - Added
+   - Changed
+   - Fixed
+   - Dependencies (if applicable)
+   - Testing (if applicable)
+   - Removed (if applicable)
+4. Provide clear, concise descriptions for each change
+5. Include technical details and impact where relevant
 6. Document any breaking changes prominently
 
 For changes that affect the audio processing pipeline:

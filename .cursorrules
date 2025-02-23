@@ -66,3 +66,21 @@ rules:
     description: >
       For any major changes or releases, ensure that the CHANGELOG.md file is updated with clear, concise details.
       This documentation should follow semantic versioning principles and provide context on new features, fixes, or breaking changes.
+
+  - name: CHANGELOG Session Separation
+    description: >
+      Each development session in CHANGELOG.md must be documented under its own dated section:
+      • Use full date format: YYYY-MM-DD (e.g., 2025-02-23 for February 23, 2025)
+      • Include a brief title describing the session's main focus
+      • Categorize changes within each dated section as:
+        - Added (new features)
+        - Changed (modifications to existing functionality)
+        - Fixed (bug fixes)
+        - Dependencies (if applicable)
+        - Testing (if applicable)
+        - Removed (if applicable)
+      • Keep descriptions clear and concise
+      • Include technical details where relevant
+      • Document breaking changes prominently
+      • Always use the correct calendar year (currently 2025)
+      This ensures clear tracking of changes and makes the development history easily navigable.

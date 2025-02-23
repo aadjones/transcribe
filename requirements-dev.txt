@@ -12,6 +12,9 @@ mypy>=1.5.1
 
 # Testing
 pytest>=8.3.4
+pytest-qt>=4.2.0  # For testing Qt GUI components
+pytest-mock>=3.11.1  # For mocking in tests
+pytest-cov>=4.1.0  # For test coverage reporting
 
 # Pre-commit Hooks
 pre-commit>=3.0.0
