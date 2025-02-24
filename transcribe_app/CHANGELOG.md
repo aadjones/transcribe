@@ -80,6 +80,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Unused compression type checks for WAV files
 - Legacy audio format configurations
 
+### 2025-02-24 - UI Enhancement: Model Selection Dropdown
+#### Changed
+- Replaced segmented button group with QComboBox for model selection
+- Enhanced model selection UI with informative tooltips:
+  - Whisper Tiny: Speed-optimized with accuracy trade-off
+  - Whisper Small: Balanced speed-accuracy option
+  - Medical Model: Specialized for medical transcription
+- Improved user experience with native Qt dropdown functionality
+- Streamlined model selection code for better maintainability
+
+#### Testing
+- Updated GUI tests to work with QComboBox
+- Added tooltip content verification
+- Enhanced model selection tests for dropdown interaction
+- Removed redundant button group tests
+
 ## [0.1.0] - 2024-02-18
 
 ### Added
